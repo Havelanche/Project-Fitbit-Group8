@@ -1,0 +1,32 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+df = pd.read_csv('w1_daily_activity.csv')
+print(df.head())
+
+count_unique_users = df['Id'].nunique()
+print(f"Number of unique users: {count_unique_users} \n")
+
+# Step 1: Get unique user IDs and their total distance
+unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
+print(unique_users)
+
+# Step 2: Add a new index column starting from 0
+unique_users.insert(0, 'Index', range(len(unique_users)))
+
+# Rename columns for clarity
+unique_users.columns = ['Index', 'User ID', 'Total Distance']
+
+# Print the new DataFrame to verify
+print(unique_users.head())
+
+# Step 3: Plot the graph using the new DataFrame
+plt.figure(figsize=(12, 6))
+plt.bar(unique_users['Index'], unique_users['Total Distance'], color='orange')
+plt.xlabel('User Index')
+plt.ylabel('Total Distance')
+plt.title('Total Distance Registered by Each User')
+plt.xticks(unique_users['Index'], unique_users['User ID'], rotation=45)  # Use User ID as x-axis labels
+plt.tight_layout()
+plt.show()
