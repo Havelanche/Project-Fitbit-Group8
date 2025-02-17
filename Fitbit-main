@@ -1,12 +1,16 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+from datetime import datetime
 
-df = pd.read_csv('w1_daily_activity.csv')
+df = pd.read_csv("daily_acivity.csv")
 print(df.head())
 
-count_unique_users = df['Id'].nunique()
-print(f"Number of unique users: {count_unique_users} \n")
+unique_users = df['Id'].nunique()
+print(f"Number of unique users: {unique_users} \n")
 
 # Step 1: Get unique user IDs and their total distance
 unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
@@ -19,14 +23,65 @@ unique_users.insert(0, 'Index', range(len(unique_users)))
 unique_users.columns = ['Index', 'User ID', 'Total Distance']
 
 # Print the new DataFrame to verify
-print(unique_users.head())
+print(unique_users.head()) 
 
 # Step 3: Plot the graph using the new DataFrame
-plt.figure(figsize=(12, 6))
-plt.bar(unique_users['Index'], unique_users['Total Distance'], color='orange')
-plt.xlabel('User Index')
-plt.ylabel('Total Distance')
-plt.title('Total Distance Registered by Each User')
-plt.xticks(unique_users['Index'], unique_users['User ID'], rotation=45)  # Use User ID as x-axis labels
-plt.tight_layout()
-plt.show()
+def plot_distance():
+    plt.figure(figsize=(12, 6))
+    plt.bar(unique_users['Index'], unique_users['Total Distance'], color='orange')
+    plt.xlabel('User Index')
+    plt.ylabel('Total Distance')
+    plt.title('Total Distance Registered by Each User')
+    plt.xticks(unique_users['Index'], unique_users['User ID'], rotation=45)  # Use User ID as x-axis labels
+    plt.tight_layout()
+    plt.show()
+
+def calories_burned_per_day(user_id, start_date=None, end_date=None):
+    user_data = df[df['Id'] == user_id]
+    if start_date and end_date:
+        user_data = user_data[(user_data['ActivityDate']>=start_date) &  (user_data['ActivityDate'] <= end_date)]
+    plt.figure(figsize=(20,15))
+    plt.plot(user_data['ActivityDate'], user_data['Calories'], marker='o',linestyle='-')
+    plt.xlabel('Day')
+    plt.ylabel('Total calories burned')
+    plt.title(f'Total calories burned by User {user_id}')
+    plt.xticks(rotation=45) 
+    plt.grid()
+    plt.show()
+    
+def plot_workout():
+    df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
+    plt.figure(figsize=(10, 5))
+    sns.countplot(x='DayOfWeek', data=df, order=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], palette='pastel')
+    plt.xlabel('Day of the week')
+    plt.ylabel('Workout Count by Day')
+    plt.title('Weekly Workout Frequency')
+    plt.xticks(rotation=45) 
+    plt.show()
+
+df['Id'] = df['Id'].astype(str)
+linear_regression_model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
+print(linear_regression_model.summary())
+
+def plot_LRM(user_id):
+    user = df[df['Id'] == str(user_id)]
+    plt.figure(figsize=(10,5))
+    sns.regplot(x='TotalSteps', y='Calories', data=user, scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
+    plt.xlabel('Total Steps')
+    plt.ylabel('Calories Burned')
+    plt.title(f'Calories vs. Steps for USer {user_id}')
+    plt.show()
+    
+    
+    if __name__ == '__main__':
+        plot_distance()
+        plot_workout()
+        model = linear_regression_model()
+        
+        calories_burned_per_day(user_id=1644430081, start_date="2016-03-01", end_date="2016-03-30")
+        plot_LRM(user_id=1644430081, model=model)
+        
+        calories_burned_per_day(user=df['Id'].iloc[0])
+        plot_workout()
+        plot_LRM(user=df['Id'].iloc[0])
+        
