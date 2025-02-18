@@ -1,94 +1,45 @@
-import numpy as np
+import sqlite3
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import statsmodels.api as sm
-import statsmodels.formula.api as smf
-from datetime import datetime
 
-df = pd.read_csv("daily_activity.csv")
+with sqlite3.connect("fitbit_database.db") as connection:
+    cursor = connection.cursor()
 
-# *first-change: converting date column 
-df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
+    # Check available tables (for debugging)
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cursor.fetchall()
 
+    # Query to get activity counts per user
+    query = """
+    SELECT Id, COUNT(Id) AS activity_count
+    FROM daily_activity
+    GROUP BY Id
+    """
+    
+    cursor.execute(query)
+    results = cursor.fetchall()
+
+# Convert results to DataFrame
+df = pd.DataFrame(results, columns=["Id", "activity_count"])
+df["Id"] = df["Id"].astype("int64")
+
+#checking error
 print(df.head())
 
-unique_users = df['Id'].nunique()
-print(f"Number of unique users: {unique_users} \n")
+# Define classification function
+def classify_user(count):
+    if count <= 10:
+        return "Light user"
+    elif 11 <= count <= 15:
+        return "Moderate user"
+    else:
+        return "Heavy user"
 
-# Step 1: Get unique user IDs and their total distance
-unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
-print(unique_users)
+# Apply classification
+df["Class"] = df["activity_count"].apply(classify_user)
 
-# Step 2: Add a new index column starting from 0
-unique_users.insert(0, 'Index', range(len(unique_users)))
+# Keep only necessary columns
+df = df[["Id", "Class"]]
+df["Id"] = df["Id"].astype("int64")
 
-# Rename columns for clarity
-unique_users.columns = ['Index', 'User ID', 'Total Distance']
-
-# Print the new DataFrame to verify
-print(unique_users.head()) 
-
-# Step 3: Plot the graph using the new DataFrame 
-def plot_distance():
-    plt.figure(figsize=(12, 6))
-    plt.bar(unique_users['Index'], unique_users['Total Distance'], color='orange')
-    plt.xlabel('User Index')
-    plt.ylabel('Total Distance')
-    plt.title('Total Distance Registered by Each User')
-    plt.xticks(unique_users['Index'], unique_users['User ID'], rotation=45) 
-    plt.tight_layout()
-    plt.show()
-
-
-def calories_burned_per_day(user_id, start_date=None, end_date=None):
-    user_data = df[df['Id'] == user_id]
-    if start_date and end_date:
-        user_data = user_data[(user_data['ActivityDate']>=start_date) &  (user_data['ActivityDate'] <= end_date)]
-    
-    # *second-change: the graph size was too big, I minimized the size
-    plt.figure(figsize=(10,5))
-    plt.plot(user_data['ActivityDate'], user_data['Calories'], marker='o',linestyle='-')
-    plt.xlabel('Day')
-    plt.ylabel('Total calories burned')
-    plt.title(f'Total calories burned by User {user_id}')
-    plt.xticks(rotation=45) 
-    plt.grid()
-    plt.show()
-    
-def plot_workout():
-    df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
-    plt.figure(figsize=(10, 5))
-    sns.countplot(x='DayOfWeek', data=df, order=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], palette='pastel')
-    plt.xlabel('Day of the week')
-    plt.ylabel('Workout Count by Day')
-    plt.title('Weekly Workout Frequency')
-    plt.xticks(rotation=45) 
-    plt.show()
-
-df['Id'] = df['Id'].astype(str)
-linear_regression_model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
-print(linear_regression_model.summary())
-
-
-def plot_LRM(user_id):
-    user = df[df['Id'] == str(user_id)]
-    plt.figure(figsize=(10,5))
-    sns.regplot(x='TotalSteps', y='Calories', data=user, scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
-    plt.xlabel('Total Steps')
-    plt.ylabel('Calories Burned')
-    plt.title(f'Calories vs. Steps for User {user_id}')
-    plt.show()
-
-    
-# *third-change: remove if statement from 'plot_LRM' to ensure the program's excution 
-if __name__ == '__main__':
-    plot_distance()
-    plot_workout()
-
-    # *fourth-change: use the first valid "user_id" for testing 
-    user_id_test = df['Id'].iloc[0]  
-    calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")
-
-    # *fifth-change: 'Model' parameter is removed from "plot_LRM" function, since it;s not used
-    plot_LRM(user_id=user_id_test)
+print("checking result")
+print(df.head())
