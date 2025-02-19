@@ -30,15 +30,24 @@ unique_users.columns = ['Index', 'User ID', 'Total Distance']
 print(unique_users.head()) 
 
 # Step 3: Plot the graph using the new DataFrame 
-def plot_distance():
-    plt.figure(figsize=(12, 6))
-    plt.bar(unique_users['Index'], unique_users['Total Distance'], color='orange')
-    plt.xlabel('User Index')
-    plt.ylabel('Total Distance')
-    plt.title('Total Distance Registered by Each User')
-    plt.xticks(unique_users['Index'], unique_users['User ID'], rotation=45) 
-    plt.tight_layout()
-    plt.show()
+#1-2 frequency distribution
+plt.figure(figsize=(12, 6))
+# Create histogram and store bin edges
+counts, bins, patches = plt.hist(unique_users['Total Distance'], bins=10, color='orange', edgecolor='black')
+# Set x-axis ticks at bin edges
+plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
+
+# plt.hist(unique_users['Total Distance'], bins=10, color='orange', edgecolor='black')
+
+# counts, bins, patches = plt.hist(unique_users['Total Distance'], bins=10, color='skyblue', edgecolor='black')
+# tick_positions = np.arange(0, max(bins), 16)  # Adjust interval as needed
+# plt.xticks(tick_positions)
+
+plt.xlabel('Total Distance')
+plt.ylabel('Number of Users')
+plt.title('Distribution of Total Distances Covered by 35 Users')
+plt.grid(axis='y', linestyle='--', alpha=0.7)
+plt.show()
 
 
 def calories_burned_per_day(user_id, start_date=None, end_date=None):
