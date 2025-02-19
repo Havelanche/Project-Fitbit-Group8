@@ -6,48 +6,38 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from datetime import datetime
 
-df = pd.read_csv("daily_activity.csv")
+def load_data(filename):
+    df = pd.read_csv(filename)
+    df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
+    return df
 
-# *first-change: converting date column 
-df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
+def get_unique_users(df):
+    unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
+    print(unique_users)
 
-print(df.head())
+    unique_users.insert(0, 'Index', range(len(unique_users)))
+    unique_users.columns = ['Index', 'User ID', 'Total Distance']
 
-unique_users = df['Id'].nunique()
-print(f"Number of unique users: {unique_users} \n")
+    print(unique_users.head()) 
+    return unique_users
 
-# Step 1: Get unique user IDs and their total distance
-unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
-print(unique_users)
-
-# Step 2: Add a new index column starting from 0
-unique_users.insert(0, 'Index', range(len(unique_users)))
-
-# Rename columns for clarity
-unique_users.columns = ['Index', 'User ID', 'Total Distance']
-
-# Print the new DataFrame to verify
-print(unique_users.head()) 
-
-# Step 3: Plot the graph using the new DataFrame 
-def plot_distance():
+def plot_distance_distribution(unique_users):
     plt.figure(figsize=(12, 6))
-    plt.bar(unique_users['Index'], unique_users['Total Distance'], color='orange')
-    plt.xlabel('User Index')
-    plt.ylabel('Total Distance')
-    plt.title('Total Distance Registered by Each User')
-    plt.xticks(unique_users['Index'], unique_users['User ID'], rotation=45) 
-    plt.tight_layout()
-    plt.show()
+    counts, bins, patches = plt.hist(unique_users['Total Distance'], bins=10, color='orange', edgecolor='black')
+    plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
 
+    plt.xlabel('Total Distance')
+    plt.ylabel('Number of Users')
+    plt.title('Distribution of Total Distances Covered by 35 Users')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.show()
 
 def calories_burned_per_day(user_id, start_date=None, end_date=None):
     user_data = df[df['Id'] == user_id]
     if start_date and end_date:
         user_data = user_data[(user_data['ActivityDate']>=start_date) &  (user_data['ActivityDate'] <= end_date)]
     
-    # *second-change: the graph size was too big, I minimized the size
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(12,6))
     plt.plot(user_data['ActivityDate'], user_data['Calories'], marker='o',linestyle='-')
     plt.xlabel('Day')
     plt.ylabel('Total calories burned')
@@ -56,24 +46,19 @@ def calories_burned_per_day(user_id, start_date=None, end_date=None):
     plt.grid()
     plt.show()
     
-def plot_workout():
+def plot_workout(df):
     df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
-    plt.figure(figsize=(10, 5))
-    sns.countplot(x='DayOfWeek', data=df, order=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], palette='pastel')
+    plt.figure(figsize=(12, 6))
+    sns.countplot(x='DayOfWeek', data=df, order=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], palette='pastel', hue='DayOfWeek', legend=False)
     plt.xlabel('Day of the week')
     plt.ylabel('Workout Count by Day')
     plt.title('Weekly Workout Frequency')
     plt.xticks(rotation=45) 
     plt.show()
 
-df['Id'] = df['Id'].astype(str)
-linear_regression_model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
-print(linear_regression_model.summary())
-
-
 def plot_LRM(user_id):
     user = df[df['Id'] == str(user_id)]
-    plt.figure(figsize=(10,5))
+    plt.figure(figsize=(12,6))
     sns.regplot(x='TotalSteps', y='Calories', data=user, scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
     plt.xlabel('Total Steps')
     plt.ylabel('Calories Burned')
@@ -81,14 +66,37 @@ def plot_LRM(user_id):
     plt.show()
 
     
-# *third-change: remove if statement from 'plot_LRM' to ensure the program's excution 
+# #Add the external database
+# import sqlite3 as sql
+
+# connection = sql.connect("fitbit_database.db")
+
+# #create a query by creating a string, so that we could use it just like in SQL
+# query = f"SELECT * FROM daily_activity"
+# cursor = connection.cursor()
+# cursor.execute(query)
+# rows = cursor.fetchall()
+# df = pd.DataFrame(rows, columns = [x[0] for x in cursor.description])
+    
 if __name__ == '__main__':
-    plot_distance()
-    plot_workout()
+    df = load_data("daily_activity.csv")    
+    print(df.head())
 
-    # *fourth-change: use the first valid "user_id" for testing 
+    unique_users = get_unique_users(df)
+    
+    print(f"Number of unique users: {df['Id'].nunique()} \n")
+    print(unique_users.head())
+    
+    plot_distance_distribution(unique_users)
+    plot_workout(df)
+
+    df['Id'] = df['Id'].astype(str)
+    linear_regression_model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
+    print(linear_regression_model.summary())
+
     user_id_test = df['Id'].iloc[0]  
-    calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")
+    calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
 
-    # *fifth-change: 'Model' parameter is removed from "plot_LRM" function, since it;s not used
-    plot_LRM(user_id=user_id_test)
+    plot_LRM(user_id=user_id_test)  
+
+
