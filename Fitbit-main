@@ -24,7 +24,8 @@ def get_unique_users(df):
 def plot_distance_distribution(unique_users):
     plt.figure(figsize=(12, 6))
     counts, bins, patches = plt.hist(unique_users['Total Distance'], bins=10, color='orange', edgecolor='black')
-    plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
+    # plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
+    plt.xticks(bins.round(1))
 
     plt.xlabel('Total Distance')
     plt.ylabel('Number of Users')
@@ -32,7 +33,7 @@ def plot_distance_distribution(unique_users):
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.show()
 
-def calories_burned_per_day(user_id, start_date=None, end_date=None):
+def calories_burned_per_day(df, user_id, start_date=None, end_date=None):
     user_data = df[df['Id'] == user_id]
     if start_date and end_date:
         user_data = user_data[(user_data['ActivityDate']>=start_date) &  (user_data['ActivityDate'] <= end_date)]
@@ -56,7 +57,7 @@ def plot_workout(df):
     plt.xticks(rotation=45) 
     plt.show()
 
-def plot_LRM(user_id):
+def plot_LRM(df, user_id):
     user = df[df['Id'] == str(user_id)]
     plt.figure(figsize=(12,6))
     sns.regplot(x='TotalSteps', y='Calories', data=user, scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
@@ -64,6 +65,11 @@ def plot_LRM(user_id):
     plt.ylabel('Calories Burned')
     plt.title(f'Calories vs. Steps for User {user_id}')
     plt.show()
+    
+def classify_user(df):
+    user_counts = df.groupby('Id').size()
+    categories = pd.cut(user_counts, bins=[0, 10, 15, float('inf')], labels=['Light', 'Moderate', 'Heavy'])
+    return pd.DataFrame({'Id': user_counts.index, 'Class': categories})
 
     
 # #Add the external database
@@ -97,6 +103,7 @@ if __name__ == '__main__':
     user_id_test = df['Id'].iloc[0]  
     calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
 
-    plot_LRM(user_id=user_id_test)  
-
-
+    plot_LRM(df, user_id=user_id_test)  
+    
+    user_classes = classify_user(df)
+    print(user_classes.head())
