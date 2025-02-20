@@ -65,7 +65,6 @@ def plot_LRM(user_id):
     plt.title(f'Calories vs. Steps for User {user_id}')
     plt.show()
 
-    
 # #Add the external database
 # import sqlite3 as sql
 
@@ -98,5 +97,6 @@ if __name__ == '__main__':
     calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
 
     plot_LRM(user_id=user_id_test)  
+    print("very well done everyone!")
 
 
