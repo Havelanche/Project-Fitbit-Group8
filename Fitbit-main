@@ -13,22 +13,20 @@ def load_data(filename):
     df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
     return df
 
-#fourth-change: add a new parameter "str" to customize the prints data
+#first-change: add a new parameter "str" to customize the prints data
 def get_unique_users(df, str):
     unique_users = df.groupby('Id')[str].sum().reset_index()
     
-    # first-change: Let the index start from 1 & change the prints (no '.head()' & name of index column)
+    # second-change: Let the index start from 1 & change the prints (no '.head()' & name of index column)
     unique_users.insert(0, 'Index', range(1, len(unique_users) + 1))
     unique_users.columns = ['#Users', 'User ID', str]
     print(unique_users)
-    #Question 1: why we print "unique_users.head()", since it's missing 30 other users
-    #print(unique_users.head()) 
     return unique_users
 
 def plot_distance_distribution(unique_users):
     plt.figure(figsize=(12, 6))
 
-    # fifth-change: add a function call here to generate a new "unique_users", so that the get_unique_users() function can work seperately
+    # third-change: add a function call here to generate a new "unique_users", so that the get_unique_users() function can work seperately
     unique_users = get_unique_users(df, "TotalDistance")
     counts, bins, patches = plt.hist(unique_users['TotalDistance'], bins=10, color='orange', edgecolor='black')
     # plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
@@ -76,12 +74,12 @@ def plot_LRM(df, user_id):
 def classify_user(df):
     user_counts = df.groupby('Id').size()
     categories = pd.cut(user_counts, bins=[0, 10, 15, float('inf')], labels=['Light', 'Moderate', 'Heavy'])
-    # second-change: DELETE " 'Id': user_counts.index, " for cutting the redundancy
+    # fourth-change: DELETE " 'Id': user_counts.index, " for cutting the redundancy
     return pd.DataFrame({'Class': categories})
 
     
 
-#create a acquisition function for future use of query
+#create an acquisition function for future use of query
 def SQL_acquisition(str):
     query = str
     cursor = connection.cursor()
@@ -101,16 +99,11 @@ def verify_total_steps(df):
 
 if __name__ == '__main__':
     df = load_data("daily_activity.csv")    
-    #print(df.head())
 
-    # fourth-change: followed up parameter insert
+    # follow-up parameter insert for function update
     unique_users = get_unique_users(df, str='TotalSteps')
     
-    print(f"Number of unique users: {df['Id'].nunique()} \n")
-
-    # thrid-change: Delete "print(unique_users.head())", since it's already printed in "get_unique_users(df)"
-
-    
+    print(f"Number of unique users: {df['Id'].nunique()} \n")   
     plot_distance_distribution(unique_users)
     plot_workout(df)
 
@@ -124,13 +117,8 @@ if __name__ == '__main__':
     plot_LRM(df, user_id=user_id_test)  
     
     user_classes = classify_user(df)
-    # sixth-change: remove the .head()
     print(user_classes)
 
-    # #Add the external database (in the end should be in the void main)
+    #Add the external database
     connection = sql.connect("fitbit_database.db")
     verify_total_steps(df)
-
-
-    
- 
