@@ -122,3 +122,4 @@ if __name__ == '__main__':
     #Add the external database
     connection = sql.connect("fitbit_database.db")
     verify_total_steps(df)
+
