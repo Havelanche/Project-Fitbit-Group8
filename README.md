@@ -128,5 +128,7 @@ verify_total_steps(df)
 
 ## Contributors
 
-- **[Havelanche, Honglin, Lala, Chenshuo]** - Project Lead
-- **[Other Contributors]**
+- **[Havelanche]**
+- **[Honglin]**
+- **[Lala]**
+- **[Chenshuo]**
