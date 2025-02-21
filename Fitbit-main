@@ -5,25 +5,32 @@ import seaborn as sns
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from datetime import datetime
+import sqlite3 as sql
+
 
 def load_data(filename):
     df = pd.read_csv(filename)
     df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
     return df
 
-def get_unique_users(df):
-    unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
+#fourth-change: add a new parameter "str" to customize the prints data
+def get_unique_users(df, str):
+    unique_users = df.groupby('Id')[str].sum().reset_index()
+    
+    # first-change: Let the index start from 1 & change the prints (no '.head()' & name of index column)
+    unique_users.insert(0, 'Index', range(1, len(unique_users) + 1))
+    unique_users.columns = ['#Users', 'User ID', str]
     print(unique_users)
-
-    unique_users.insert(0, 'Index', range(len(unique_users)))
-    unique_users.columns = ['Index', 'User ID', 'Total Distance']
-
-    print(unique_users.head()) 
+    #Question 1: why we print "unique_users.head()", since it's missing 30 other users
+    #print(unique_users.head()) 
     return unique_users
 
 def plot_distance_distribution(unique_users):
     plt.figure(figsize=(12, 6))
-    counts, bins, patches = plt.hist(unique_users['Total Distance'], bins=10, color='orange', edgecolor='black')
+
+    # fifth-change: add a function call here to generate a new "unique_users", so that the get_unique_users() function can work seperately
+    unique_users = get_unique_users(df, "TotalDistance")
+    counts, bins, patches = plt.hist(unique_users['TotalDistance'], bins=10, color='orange', edgecolor='black')
     # plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
     plt.xticks(bins.round(1))
 
@@ -69,29 +76,40 @@ def plot_LRM(df, user_id):
 def classify_user(df):
     user_counts = df.groupby('Id').size()
     categories = pd.cut(user_counts, bins=[0, 10, 15, float('inf')], labels=['Light', 'Moderate', 'Heavy'])
-    return pd.DataFrame({'Id': user_counts.index, 'Class': categories})
+    # second-change: DELETE " 'Id': user_counts.index, " for cutting the redundancy
+    return pd.DataFrame({'Class': categories})
 
     
-# #Add the external database
-# import sqlite3 as sql
 
-# connection = sql.connect("fitbit_database.db")
+#create a acquisition function for future use of query
+def SQL_acquisition(str):
+    query = str
+    cursor = connection.cursor()
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    df = pd.DataFrame(rows, columns = [x[0] for x in cursor.description])
+    return df
 
-# #create a query by creating a string, so that we could use it just like in SQL
-# query = f"SELECT * FROM daily_activity"
-# cursor = connection.cursor()
-# cursor.execute(query)
-# rows = cursor.fetchall()
-# df = pd.DataFrame(rows, columns = [x[0] for x in cursor.description])
-    
+# Task1: Verify the TotalSteps as we concluded = sum of TotalStep in "hourly_steps"
+def verify_total_steps(df):
+    df_database = SQL_acquisition(f"SELECT Id, sum(StepTotal) AS total_steps FROM hourly_steps GROUP BY Id")
+    df_csv = get_unique_users(df, str='TotalSteps')
+
+    identical = df_database['total_steps'].equals(df_csv['TotalSteps'])
+    print("If the total steps in csv file is indentical as in database?:", identical)
+
+
 if __name__ == '__main__':
     df = load_data("daily_activity.csv")    
-    print(df.head())
+    #print(df.head())
 
-    unique_users = get_unique_users(df)
+    # fourth-change: followed up parameter insert
+    unique_users = get_unique_users(df, str='TotalSteps')
     
     print(f"Number of unique users: {df['Id'].nunique()} \n")
-    print(unique_users.head())
+
+    # thrid-change: Delete "print(unique_users.head())", since it's already printed in "get_unique_users(df)"
+
     
     plot_distance_distribution(unique_users)
     plot_workout(df)
@@ -101,9 +119,18 @@ if __name__ == '__main__':
     print(linear_regression_model.summary())
 
     user_id_test = df['Id'].iloc[0]  
-    calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
+    calories_burned_per_day(df, user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
 
     plot_LRM(df, user_id=user_id_test)  
     
     user_classes = classify_user(df)
-    print(user_classes.head())
+    # sixth-change: remove the .head()
+    print(user_classes)
+
+    # #Add the external database (in the end should be in the void main)
+    connection = sql.connect("fitbit_database.db")
+    verify_total_steps(df)
+
+
+    
+ 
