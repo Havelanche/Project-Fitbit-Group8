@@ -128,10 +128,5 @@ verify_total_steps(df)
 
 ## Contributors
 
-- **[Your Name]** - Project Lead
+- **[Havelanche, Honglin, Lala, Chenshuo]** - Project Lead
 - **[Other Contributors]**
-
-## License
-
-This project is licensed under the MIT License. See `LICENSE` for details.
-
