@@ -2,13 +2,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 def plot_distance_distribution(df):
-    unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
     plt.figure(figsize=(12, 6))
-
-    # third-change: add a function call here to generate a new "unique_users", so that the get_unique_users() function can work seperately
-    unique_users = unique_users(df, "TotalDistance")
-    counts, bins, patches = plt.hist(unique_users['TotalDistance'], bins=10, color='orange', edgecolor='black')
-    # plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
+    counts, bins, patches = plt.hist(df['TotalDistance'], bins=10, color='orange', edgecolor='black')
     plt.xticks(bins.round(1))
 
     plt.xlabel('Total Distance')

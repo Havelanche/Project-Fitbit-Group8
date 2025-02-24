@@ -1,8 +1,13 @@
 import pandas as pd 
 
 def load_data(filename):
-    df = pd.read_csv(filename)
-    df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
+    df = pd.read_csv(filename, sep=';')  
+    df.columns = df.columns.str.strip()  
+    print("Cleaned Columns:", df.columns.tolist()) 
+    if 'ActivityDate' in df.columns:
+        df['ActivityDate'] = pd.to_datetime(df['ActivityDate'], errors='coerce')
+    else:
+        print("Error: 'ActivityDate' column not found!")
     return df
 
 #first-change: add a new parameter "str" to customize the prints data

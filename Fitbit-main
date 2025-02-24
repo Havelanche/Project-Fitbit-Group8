@@ -9,8 +9,10 @@ def main():
 
     # Load data
     df = load_data(DATA_FILE)
+    print("Columns in df:", df.columns.tolist())
 
-    # Get unique users
+
+    # follow-up parameter insert for function update
     unique_users = get_unique_users(df, 'TotalSteps')
     print(f"Number of unique users: {df['Id'].nunique()} \n")
 
