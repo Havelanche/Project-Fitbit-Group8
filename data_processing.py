@@ -1,4 +1,5 @@
 import pandas as pd 
+from database import SQL_acquisition
 
 def load_data(filename):
     df = pd.read_csv(filename, sep=';')  
@@ -19,3 +20,14 @@ def get_unique_users(df, str):
     unique_users.columns = ['#Users', 'User ID', str]
     print(unique_users)
     return unique_users
+
+def calculate_sleep_duration(connection):
+    query = '''
+    SELECT Id, logId, COUNT(*) AS sleep_minutes
+    FROM minute_sleep
+    GROUP BY Id, logId
+    '''
+    sleep_df = SQL_acquisition(connection, query)
+    print("Sleep Duration:")
+    print(sleep_df.head())
+    return sleep_df
