@@ -1,45 +1,331 @@
-import sqlite3
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+import sqlite3 as sql
 
-with sqlite3.connect("fitbit_database.db") as connection:
-    cursor = connection.cursor()
+def load_data(filename):
+    df = pd.read_csv(filename)
+    df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
+    return df
 
-    # Check available tables (for debugging)
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
-    tables = cursor.fetchall()
+def get_unique_users(df, column_name):
+    unique_users = df.groupby('Id')[column_name].sum().reset_index()
+    unique_users.insert(0, 'Index', range(1, len(unique_users) + 1))
+    unique_users.columns = ['#Users', 'User ID', column_name]
+    print(unique_users)
+    return unique_users
 
-    # Query to get activity counts per user
-    query = """
-    SELECT Id, COUNT(Id) AS activity_count
-    FROM daily_activity
-    GROUP BY Id
-    """
+def plot_distance_distribution(unique_users):
+    plt.figure(figsize=(12, 6))
+    counts, bins, patches = plt.hist(unique_users['TotalDistance'], bins=10, color='orange', edgecolor='black')
+    plt.xticks(bins.round(1))
+    plt.xlabel('Total Distance')
+    plt.ylabel('Number of Users')
+    plt.title('Distribution of Total Distances Covered')
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.show()
+
+
+def calories_burned_per_day(df, user_id, start_date=None, end_date=None):
+    user_data = df[df['Id'] == user_id]
+    if start_date and end_date:
+        user_data = user_data[(user_data['ActivityDate'] >= start_date) & (user_data['ActivityDate'] <= end_date)]
     
+    plt.figure(figsize=(12,6))
+    plt.plot(user_data['ActivityDate'], user_data['Calories'], marker='o', linestyle='-')
+    plt.xlabel('Day')
+    plt.ylabel('Total calories burned')
+    plt.title(f'Total calories burned by User {user_id}')
+    plt.xticks(rotation=45) 
+    plt.grid()
+    plt.show()
+
+def plot_workout(df):
+    df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
+    plt.figure(figsize=(12, 6))
+    sns.countplot(x='DayOfWeek', data=df, order=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], palette='pastel')
+    plt.xlabel('Day of the week')
+    plt.ylabel('Workout Count')
+    plt.title('Weekly Workout Frequency')
+    plt.xticks(rotation=45) 
+    plt.show()
+
+def plot_LRM(df, user_id):
+    user = df[df['Id'] == user_id]
+    plt.figure(figsize=(12,6))
+    sns.regplot(x='TotalSteps', y='Calories', data=user, scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
+    plt.xlabel('Total Steps')
+    plt.ylabel('Calories Burned')
+    plt.title(f'Calories vs. Steps for User {user_id}')
+    plt.show()
+
+def classify_user(df):
+    user_counts = df.groupby('Id').size()
+    categories = pd.cut(user_counts, bins=[0, 10, 15, float('inf')], labels=['Light', 'Moderate', 'Heavy'])
+    return pd.DataFrame({'Class': categories})
+
+def SQL_acquisition(connection, query):
+    cursor = connection.cursor()
     cursor.execute(query)
-    results = cursor.fetchall()
+    rows = cursor.fetchall()
+    df = pd.DataFrame(rows, columns=[x[0] for x in cursor.description])
+    return df
+#task1
+def verify_total_steps(df, connection):
+    df_database = SQL_acquisition(connection, f"SELECT Id, sum(StepTotal) AS total_steps FROM hourly_steps GROUP BY Id")
+    df_csv = df.groupby('Id')['TotalSteps'].sum().reset_index()
 
-# Convert results to DataFrame
-df = pd.DataFrame(results, columns=["Id", "activity_count"])
-df["Id"] = df["Id"].astype("int64")
+    identical = df_database['total_steps'].equals(df_csv['TotalSteps'])
+    print("If the total steps in csv file is indentical as in database?:", identical)
+#task2
+def compute_sleep_duration(connection):
+    query = """
+        SELECT logId, Id, COUNT(*) AS SleepDuration
+        FROM minute_sleep
+        GROUP BY logId, Id
+        ORDER BY Id, logId
+    """
+    df_sleep = pd.read_sql_query(query, connection)
 
-#checking error
-print(df.head())
+    df_sleep["logId"] = df_sleep["logId"].astype(int).astype(str)
+    df_sleep["Id"] = df_sleep["Id"].astype(int).astype(str)
+    # Display sleep durations
+    print("Computed Sleep Duration for Each Sleep Session:")
+    print(df_sleep.head(10))  # Show first 10 results
 
-# Define classification function
-def classify_user(count):
-    if count <= 10:
-        return "Light user"
-    elif 11 <= count <= 15:
-        return "Moderate user"
-    else:
-        return "Heavy user"
+    return df_sleep
+#task3
+def analyze_sleep_vs_activity(connection):
+    """Analyze the relationship between sleep duration and total active minutes."""
 
-# Apply classification
-df["Class"] = df["activity_count"].apply(classify_user)
+    # Query: Compute daily sleep duration in minutes
+    query_sleep = """
+        SELECT Id, date AS ActivityDate, SUM(value) AS SleepDuration
+        FROM minute_sleep
+        WHERE value > 0
+        GROUP BY Id, ActivityDate
+    """
+    df_sleep = pd.read_sql_query(query_sleep, connection)
 
-# Keep only necessary columns
-df = df[["Id", "Class"]]
-df["Id"] = df["Id"].astype("int64")
+    # Convert sleep duration to hours for better interpretation
+    df_sleep["SleepDuration"] = df_sleep["SleepDuration"] / 60  
 
-print("checking result")
-print(df.head())
+    # Query: Compute total active minutes per day
+    query_activity = """
+        SELECT Id, ActivityDate, 
+               (VeryActiveMinutes + FairlyActiveMinutes + LightlyActiveMinutes) AS TotalActiveMinutes
+        FROM daily_activity
+    """
+    df_activity = pd.read_sql_query(query_activity, connection)
+
+    # Convert Id and ActivityDate to string for safe merging
+    df_sleep["Id"] = df_sleep["Id"].astype(str)
+    df_activity["Id"] = df_activity["Id"].astype(str)
+    df_sleep["ActivityDate"] = pd.to_datetime(df_sleep["ActivityDate"]).dt.date.astype(str)
+    df_activity["ActivityDate"] = pd.to_datetime(df_activity["ActivityDate"]).dt.date.astype(str)
+
+    # Merge datasets on Id and ActivityDate
+    df_merged = df_activity.merge(df_sleep, on=["Id", "ActivityDate"], how="inner")
+
+    # Perform regression analysis: SleepDuration ~ TotalActiveMinutes
+    model = smf.ols("SleepDuration ~ TotalActiveMinutes", data=df_merged).fit()
+    print(model.summary())
+
+    # Plot regression results
+    plt.figure(figsize=(8, 5))
+    sns.regplot(x=df_merged["TotalActiveMinutes"], y=df_merged["SleepDuration"], 
+                scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
+    plt.xlabel("Total Active Minutes")
+    plt.ylabel("Sleep Duration (hours)")
+    plt.title("Regression: Sleep Duration vs. Active Minutes")
+    plt.show()
+
+    return df_merged, model
+
+# Function to analyze sleep vs. sedentary minutes
+def analyze_sleep_vs_sedentary(connection):
+    try:
+      
+
+        # Query: Compute daily sleep duration in minutes
+        query_sleep = """
+            SELECT Id, date AS ActivityDate, SUM(value) AS SleepDuration
+            FROM minute_sleep
+            WHERE value > 0
+            GROUP BY Id, ActivityDate
+        """
+        df_sleep = pd.read_sql_query(query_sleep, connection)
+
+        # Convert sleep duration to hours
+        df_sleep["SleepDuration"] = df_sleep["SleepDuration"] / 60  
+
+        # Query: Compute daily sedentary minutes
+        query_sedentary = """
+            SELECT Id, ActivityDate, SedentaryMinutes
+            FROM daily_activity
+        """
+        df_sedentary = pd.read_sql_query(query_sedentary, connection)
+
+        # Convert Id and ActivityDate to string for safe merging
+        df_sleep["Id"] = df_sleep["Id"].astype(str)
+        df_sedentary["Id"] = df_sedentary["Id"].astype(str)
+        df_sleep["ActivityDate"] = pd.to_datetime(df_sleep["ActivityDate"]).dt.date.astype(str)
+        df_sedentary["ActivityDate"] = pd.to_datetime(df_sedentary["ActivityDate"]).dt.date.astype(str)
+
+        # Merge datasets on Id and ActivityDate
+        df_merged = df_sedentary.merge(df_sleep, on=["Id", "ActivityDate"], how="inner")
+
+        # Close database connection
+        connection.close()
+
+        # Check if merge resulted in an empty dataset
+        if df_merged.empty:
+            print("❌ Error: Merged dataframe is empty! Check date format in `minute_sleep` and `daily_activity`.")
+            return None
+
+        # Perform regression analysis: SleepDuration ~ SedentaryMinutes
+        model = smf.ols("SleepDuration ~ SedentaryMinutes", data=df_merged).fit()
+
+        # Display regression summary
+        print(model.summary())
+
+        # Plot regression results
+        plt.figure(figsize=(8, 5))
+        sns.regplot(x=df_merged["SedentaryMinutes"], y=df_merged["SleepDuration"], 
+                    scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
+        plt.xlabel("Sedentary Minutes")
+        plt.ylabel("Sleep Duration (hours)")
+        plt.title("Regression: Sleep Duration vs. Sedentary Minutes")
+        plt.show()
+
+        # Residual analysis to check normality
+        residuals = model.resid
+
+        # Histogram of residuals
+        plt.figure(figsize=(8, 5))
+        sns.histplot(residuals, kde=True, bins=30)
+        plt.xlabel("Residuals")
+        plt.ylabel("Frequency")
+        plt.title("Residual Distribution (Normality Check)")
+        plt.show()
+
+        # Q-Q plot to check normality visually
+        sm.qqplot(residuals, line="45", fit=True)
+        plt.title("Q-Q Plot of Residuals (Normality Check)")
+        plt.show()
+
+        # Perform Shapiro-Wilk test for normality
+        shapiro_test_stat, shapiro_p_value = shapiro(residuals.sample(5000, random_state=42))  # Take a sample to avoid large data issue
+        print(f"\n📌 Shapiro-Wilk Test for Normality:")
+        print(f"Test Statistic = {shapiro_test_stat:.4f}, p-value = {shapiro_p_value:.6f}")
+
+        if shapiro_p_value < 0.05:
+            print("❌ Residuals are NOT normally distributed (p-value < 0.05). Consider transformations or a different model.")
+        else:
+            print("✅ Residuals appear normally distributed (p-value > 0.05).")
+
+        return model
+
+    except Exception as e:
+        print(f"⚠️ An error occurred: {e}")
+        return None
+    
+def analyze_time_blocks(connection):
+  
+    # Fetch the relevant data (Steps, Calories, SleepMinutes, ActivityDate)
+    query = """
+        SELECT a.TotalSteps, a.Calories, b.SleepMinutes, a.ActivityDate
+        FROM daily_activity a
+        JOIN minute_sleep b ON a.Id = b.Id AND a.ActivityDate = b.date
+        GROUP BY a.Id, a.ActivityDate;
+    """
+    merged_df = pd.read_sql_query(query, connection)
+
+    # Add a column to categorize each row based on the 4-hour block of the day
+    merged_df["Hour"] = pd.to_datetime(merged_df["ActivityDate"]).dt.hour
+
+    # Create a function to categorize the hour into 4-hour blocks
+    def categorize_block(hour):
+        if 0 <= hour < 4:
+            return "0-4"
+        elif 4 <= hour < 8:
+            return "4-8"
+        elif 8 <= hour < 12:
+            return "8-12"
+        elif 12 <= hour < 16:
+            return "12-16"
+        elif 16 <= hour < 20:
+            return "16-20"
+        else:
+            return "20-24"
+
+    # Apply the function to create the 'TimeBlock' column
+    merged_df["TimeBlock"] = merged_df["Hour"].apply(categorize_block)
+
+    # Group by the TimeBlock and calculate the mean of the relevant columns
+    block_averages = merged_df.groupby("TimeBlock")[["TotalSteps", "Calories", "SleepMinutes"]].mean()
+
+    # Visualize the results in barplots for steps, calories, and sleep
+    fig, axes = plt.subplots(3, 1, figsize=(10, 15))
+
+    # Steps barplot
+    axes[0].bar(block_averages.index, block_averages["TotalSteps"], color="skyblue")
+    axes[0].set_title("Average Steps by Time Block")
+    axes[0].set_xlabel("Time Block")
+    axes[0].set_ylabel("Average Steps")
+
+    # Calories barplot
+    axes[1].bar(block_averages.index, block_averages["Calories"], color="salmon")
+    axes[1].set_title("Average Calories Burnt by Time Block")
+    axes[1].set_xlabel("Time Block")
+    axes[1].set_ylabel("Average Calories")
+
+    # Sleep barplot
+    axes[2].bar(block_averages.index, block_averages["SleepMinutes"], color="lightgreen")
+    axes[2].set_title("Average Sleep Minutes by Time Block")
+    axes[2].set_xlabel("Time Block")
+    axes[2].set_ylabel("Average Sleep Minutes")
+
+    plt.tight_layout()
+    plt.show()
+
+    # Return the block averages
+    return block_averages
+
+        
+
+
+if __name__ == '__main__':
+    df = load_data("daily_activity.csv")    
+
+    # Generate unique users for 'TotalDistance'
+    unique_users_distance = get_unique_users(df, column_name='TotalDistance')
+
+    # Pass it to the function
+    plot_distance_distribution(unique_users_distance)
+    plot_workout(df)
+
+    df['Id'] = df['Id'].astype(str)
+    linear_regression_model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
+    print(linear_regression_model.summary())
+
+    user_id_test = df['Id'].iloc[0]  
+    calories_burned_per_day(df, user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
+
+    plot_LRM(df, user_id=user_id_test)  
+    
+    user_classes = classify_user(df)
+    print(user_classes)
+
+    # Connect to the database and verify total steps
+    connection = sql.connect("fitbit_database.db")
+    verify_total_steps(df, connection)
+    df_sleep_duration = compute_sleep_duration(connection)
+    df_sleep_activity, regression_model = analyze_sleep_vs_activity(connection)
+    model = analyze_sleep_vs_sedentary(connection)
+    result = analyze_time_blocks(connection)
+    print(result)
+    connection.close()
