@@ -6,6 +6,7 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 import sqlite3 as sql
 
+
 def load_data(filename):
     df = pd.read_csv(filename)
     df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
@@ -145,7 +146,7 @@ def analyze_sleep_vs_activity(connection):
 
     return df_merged, model
 
-# Function to analyze sleep vs. sedentary minutes
+# task4
 def analyze_sleep_vs_sedentary(connection):
     try:
       
@@ -178,12 +179,9 @@ def analyze_sleep_vs_sedentary(connection):
         # Merge datasets on Id and ActivityDate
         df_merged = df_sedentary.merge(df_sleep, on=["Id", "ActivityDate"], how="inner")
 
-        # Close database connection
-        connection.close()
-
         # Check if merge resulted in an empty dataset
         if df_merged.empty:
-            print("❌ Error: Merged dataframe is empty! Check date format in `minute_sleep` and `daily_activity`.")
+            print(" Error: Merged dataframe is empty! Check date format in `minute_sleep` and `daily_activity`.")
             return None
 
         # Perform regression analysis: SleepDuration ~ SedentaryMinutes
@@ -219,84 +217,129 @@ def analyze_sleep_vs_sedentary(connection):
 
         # Perform Shapiro-Wilk test for normality
         shapiro_test_stat, shapiro_p_value = shapiro(residuals.sample(5000, random_state=42))  # Take a sample to avoid large data issue
-        print(f"\n📌 Shapiro-Wilk Test for Normality:")
+        print(f"\nShapiro-Wilk Test for Normality:")
         print(f"Test Statistic = {shapiro_test_stat:.4f}, p-value = {shapiro_p_value:.6f}")
 
         if shapiro_p_value < 0.05:
-            print("❌ Residuals are NOT normally distributed (p-value < 0.05). Consider transformations or a different model.")
+            print(" Residuals are NOT normally distributed (p-value < 0.05). Consider transformations or a different model.")
         else:
-            print("✅ Residuals appear normally distributed (p-value > 0.05).")
+            print(" Residuals appear normally distributed (p-value > 0.05).")
 
         return model
 
     except Exception as e:
         print(f"⚠️ An error occurred: {e}")
         return None
+#task 5
+def plot_activity_by_time_blocks_from_db(connection):
+ 
+    # Query the hourly steps, calories, and minute sleep data
+    hourly_steps_query = "SELECT * FROM hourly_steps;"
+    hourly_calories_query = "SELECT * FROM hourly_calories;"
+    minute_sleep_query = "SELECT * FROM minute_sleep;"
     
-def analyze_time_blocks(connection):
-  
-    # Fetch the relevant data (Steps, Calories, SleepMinutes, ActivityDate)
-    query = """
-        SELECT a.TotalSteps, a.Calories, b.SleepMinutes, a.ActivityDate
-        FROM daily_activity a
-        JOIN minute_sleep b ON a.Id = b.Id AND a.ActivityDate = b.date
-        GROUP BY a.Id, a.ActivityDate;
-    """
-    merged_df = pd.read_sql_query(query, connection)
+    # Load the data into DataFrames
+    hourly_steps_df = pd.read_sql(hourly_steps_query, connection)
+    hourly_calories_df = pd.read_sql(hourly_calories_query, connection)
+    minute_sleep_df = pd.read_sql(minute_sleep_query, connection)
+        
+    # Convert ActivityHour and date to datetime format for easier processing
+    hourly_steps_df['ActivityHour'] = pd.to_datetime(hourly_steps_df['ActivityHour'])
+    hourly_calories_df['ActivityHour'] = pd.to_datetime(hourly_calories_df['ActivityHour'])
+    minute_sleep_df['date'] = pd.to_datetime(minute_sleep_df['date'])
 
-    # Add a column to categorize each row based on the 4-hour block of the day
-    merged_df["Hour"] = pd.to_datetime(merged_df["ActivityDate"]).dt.hour
+    # Extract hour from the 'ActivityHour' for hourly data and from 'date' for minute sleep data
+    hourly_steps_df['hour'] = hourly_steps_df['ActivityHour'].dt.hour
+    hourly_calories_df['hour'] = hourly_calories_df['ActivityHour'].dt.hour
+    minute_sleep_df['hour'] = minute_sleep_df['date'].dt.hour
 
-    # Create a function to categorize the hour into 4-hour blocks
-    def categorize_block(hour):
-        if 0 <= hour < 4:
-            return "0-4"
-        elif 4 <= hour < 8:
-            return "4-8"
-        elif 8 <= hour < 12:
-            return "8-12"
-        elif 12 <= hour < 16:
-            return "12-16"
-        elif 16 <= hour < 20:
-            return "16-20"
-        else:
-            return "20-24"
+    # Define the 4-hour time blocks
+    time_blocks = [(0, 4), (4, 8), (8, 12), (12, 16), (16, 20), (20, 24)]
 
-    # Apply the function to create the 'TimeBlock' column
-    merged_df["TimeBlock"] = merged_df["Hour"].apply(categorize_block)
+    # Initialize lists to store the average steps, calories, and sleep per block
+    avg_steps = []
+    avg_calories = []
+    avg_sleep = []
 
-    # Group by the TimeBlock and calculate the mean of the relevant columns
-    block_averages = merged_df.groupby("TimeBlock")[["TotalSteps", "Calories", "SleepMinutes"]].mean()
+    # Calculate average steps per block
+    for start, end in time_blocks:
+        block_steps = hourly_steps_df[(hourly_steps_df['hour'] >= start) & (hourly_steps_df['hour'] < end)]
+        avg_steps.append(block_steps['StepTotal'].mean())
 
-    # Visualize the results in barplots for steps, calories, and sleep
-    fig, axes = plt.subplots(3, 1, figsize=(10, 15))
+    # Calculate average calories per block
+    for start, end in time_blocks:
+        block_calories = hourly_calories_df[(hourly_calories_df['hour'] >= start) & (hourly_calories_df['hour'] < end)]
+        avg_calories.append(block_calories['Calories'].mean())
 
-    # Steps barplot
-    axes[0].bar(block_averages.index, block_averages["TotalSteps"], color="skyblue")
-    axes[0].set_title("Average Steps by Time Block")
-    axes[0].set_xlabel("Time Block")
-    axes[0].set_ylabel("Average Steps")
+    # Calculate average sleep minutes per block
+    for start, end in time_blocks:
+        block_sleep = minute_sleep_df[(minute_sleep_df['hour'] >= start) & (minute_sleep_df['hour'] < end)]
+        avg_sleep.append(block_sleep['value'].sum() / 60)  # Converting to minutes by dividing by 60
 
-    # Calories barplot
-    axes[1].bar(block_averages.index, block_averages["Calories"], color="salmon")
-    axes[1].set_title("Average Calories Burnt by Time Block")
-    axes[1].set_xlabel("Time Block")
-    axes[1].set_ylabel("Average Calories")
+    # Plotting the results
+    labels = [f"{start}-{end}" for start, end in time_blocks]
+    x = np.arange(len(labels))
 
-    # Sleep barplot
-    axes[2].bar(block_averages.index, block_averages["SleepMinutes"], color="lightgreen")
-    axes[2].set_title("Average Sleep Minutes by Time Block")
-    axes[2].set_xlabel("Time Block")
-    axes[2].set_ylabel("Average Sleep Minutes")
+    fig, ax = plt.subplots(figsize=(10, 6))
 
+    bar_width = 0.2
+    ax.bar(x - bar_width, avg_steps, bar_width, label='Steps', color='b')
+    ax.bar(x, avg_calories, bar_width, label='Calories', color='g')
+    ax.bar(x + bar_width, avg_sleep, bar_width, label='Sleep (mins)', color='r')
+
+    # Adding labels and title
+    ax.set_xlabel('Time Block')
+    ax.set_ylabel('Average')
+    ax.set_title('Average Steps, Calories, and Sleep per 4-Hour Block')
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels)
+    ax.legend()
+
+    # Show the plot
+    plt.tight_layout()
+    plt.show()   
+
+#task 6    
+def plot_heart_rate_and_intensity_by_id(connection, user_id):
+    
+    # Query the heart rate and hourly intensity data for the specific user
+    heart_rate_query = f"SELECT * FROM heart_rate WHERE Id = {user_id};"
+    hourly_intensity_query = f"SELECT * FROM hourly_intensity WHERE Id = {user_id};"
+    
+    # Load the data into DataFrames
+    heart_rate_df = pd.read_sql(heart_rate_query, connection)
+    hourly_intensity_df = pd.read_sql(hourly_intensity_query, connection)
+    
+    # Convert the 'Time' column in heart rate data to datetime
+    heart_rate_df['Time'] = pd.to_datetime(heart_rate_df['Time'])
+    
+    # Convert 'ActivityHour' column in intensity data to datetime
+    hourly_intensity_df['ActivityHour'] = pd.to_datetime(hourly_intensity_df['ActivityHour'])
+    
+    # Plotting the heart rate and total intensity on the same figure
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+    
+    # Plot the heart rate data (in blue)
+    ax1.set_xlabel('Time')
+    ax1.set_ylabel('Heart Rate (bpm)', color='b')
+    ax1.plot(heart_rate_df['Time'], heart_rate_df['Value'], color='b', label='Heart Rate')
+    ax1.tick_params(axis='y', labelcolor='b')
+    
+    # Create a second y-axis for total intensity
+    ax2 = ax1.twinx()
+    ax2.set_ylabel('Total Intensity', color='g')
+    ax2.plot(hourly_intensity_df['ActivityHour'], hourly_intensity_df['TotalIntensity'], color='g', label='Total Intensity')
+    ax2.tick_params(axis='y', labelcolor='g')
+    
+    # Adding a title
+    fig.suptitle(f'Heart Rate and Total Exercise Intensity for User {user_id}', fontsize=14)
+    
+    # Show the plot
     plt.tight_layout()
     plt.show()
 
-    # Return the block averages
-    return block_averages
-
-        
-
+    # Return the figure
+    return fig
 
 if __name__ == '__main__':
     df = load_data("daily_activity.csv")    
@@ -320,12 +363,12 @@ if __name__ == '__main__':
     user_classes = classify_user(df)
     print(user_classes)
 
-    # Connect to the database and verify total steps
+
     connection = sql.connect("fitbit_database.db")
     verify_total_steps(df, connection)
     df_sleep_duration = compute_sleep_duration(connection)
     df_sleep_activity, regression_model = analyze_sleep_vs_activity(connection)
     model = analyze_sleep_vs_sedentary(connection)
-    result = analyze_time_blocks(connection)
-    print(result)
+    plot_activity_by_time_blocks_from_db(connection)
+    plot_heart_rate_and_intensity_by_id(connection, 1503960366)
     connection.close()
