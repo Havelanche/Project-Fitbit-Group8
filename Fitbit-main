@@ -14,6 +14,7 @@ def load_data(filename):
 def get_unique_users(df):
     unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
     print(unique_users)
+    print()
 
     unique_users.insert(0, 'Index', range(len(unique_users)))
     unique_users.columns = ['Index', 'User ID', 'Total Distance']
@@ -83,20 +84,19 @@ if __name__ == '__main__':
 
     unique_users = get_unique_users(df)
     
-    print(f"Number of unique users: {df['Id'].nunique()} \n")
-    print(unique_users.head())
+    print(f"\nNumber of unique users: {df['Id'].nunique()} \n")
     
     plot_distance_distribution(unique_users)
-    plot_workout(df)
+    # plot_workout(df)
 
-    df['Id'] = df['Id'].astype(str)
-    linear_regression_model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
-    print(linear_regression_model.summary())
+    # df['Id'] = df['Id'].astype(str)
+    # linear_regression_model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
+    # print(linear_regression_model.summary())
 
-    user_id_test = df['Id'].iloc[0]  
-    calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
+    # user_id_test = df['Id'].iloc[0]  
+    # calories_burned_per_day(user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")  
 
-    plot_LRM(user_id=user_id_test)  
-    print("very well done everyone!")
+    # plot_LRM(user_id=user_id_test)  
+    # print("\nvery well done everyone!")
 
 
