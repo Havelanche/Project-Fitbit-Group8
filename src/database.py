@@ -20,3 +20,6 @@ def verify_total_steps(df, connection):
     identical = df_database['total_steps'].equals(df_csv['TotalSteps'])
     print("If the total steps in csv file is indentical as in database?:", identical)
     
+    
+    #safe_sql_query()
+    #compute_sleep_duration()
