@@ -1,8 +1,8 @@
 import os
 from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
-from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day
-from analysis import classify_user, linear_regression
+from analysis import get_unique_users, unique_users_totaldistance, classify_user, linear_regression, check_activity_days, distance_days_correlation 
 from database import connect_db, verify_total_steps
+from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day
 
 FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
 DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
@@ -10,19 +10,22 @@ DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
 
 def main():
     # Load and clean data
-    original_data = DATA_FILE
-    load_and_preview_data(original_data) 
+    original_data = load_and_preview_data(DATA_FILE)  # need to fix here i will need a df type @Have
 
-    cleaned_data = clean_and_transform_data(original_data)  
-    summarize_data(cleaned_data) 
+    df = clean_and_transform_data(original_data)  
+    summarize_data(df) 
 
-    # follow-up parameter insert for function update
-    unique_users = get_unique_users(df, 'TotalSteps')
-    print(f"Number of unique users: {df['Id'].nunique()} \n")
+    # Elementary data analysis
+    unique_users = get_unique_users(df)
+    unique_user_distance = unique_users_totaldistance(df)
 
     # Visualization
-    plot_distance_distribution(df)
+    plot_distance_distribution(unique_user_distance)
     plot_workout(df)
+
+    # Creative Analysis
+    user_activity_days, top_5_users = check_activity_days(df)
+    merge_df_distance_days = distance_days_correlation(unique_user_distance, user_activity_days)
 
     # Linear regression model
     model = linear_regression(df)

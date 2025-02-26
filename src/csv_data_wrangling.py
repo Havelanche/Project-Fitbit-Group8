@@ -17,9 +17,6 @@ def clean_and_transform_data(df):
     if df["TrackerDistance"].equals(df["TotalDistance"]):
         print("\nTrackerDistance is identical to TotalDistance, dropping TrackerDistance column.")
         df = df.drop(columns=["TrackerDistance"])
-        # print(df.duplicate())
-        # screen out the trues n print
-        # duplicate([coloumn names])
 
     duplicate_rows = df[df.duplicated(keep=False)]  # Get all duplicate rows (including the original)
     total_duplicates = duplicate_rows.shape[0]
