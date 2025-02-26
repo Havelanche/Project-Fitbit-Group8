@@ -1,0 +1,48 @@
+import os
+from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
+from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day
+from analysis import classify_user, linear_regression
+from database import connect_db, verify_total_steps
+
+FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
+DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
+DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
+
+def main():
+    # Load and clean data
+    original_data = DATA_FILE
+    load_and_preview_data(original_data) 
+
+    cleaned_data = clean_and_transform_data(original_data)  
+    summarize_data(cleaned_data) 
+
+    # follow-up parameter insert for function update
+    unique_users = get_unique_users(df, 'TotalSteps')
+    print(f"Number of unique users: {df['Id'].nunique()} \n")
+
+    # Visualization
+    plot_distance_distribution(df)
+    plot_workout(df)
+
+    # Linear regression model
+    model = linear_regression(df)
+    print(model.summary())
+
+    # Calories burned per day (example user)
+    user_id_test = df['Id'].iloc[0]  
+    calories_burned_per_day(df, user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")
+
+    # Regression plot for a user
+    plot_LRM(df, user_id=user_id_test)
+
+    # Classify users based on activity
+    user_classes = classify_user(df)
+    print(user_classes)
+
+    # Database verification
+    connection = connect_db(DB_NAME)
+    verify_total_steps(df, connection)
+    connection.close()
+
+if __name__ == '__main__':
+    main()
