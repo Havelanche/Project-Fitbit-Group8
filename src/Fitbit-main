@@ -1,5 +1,5 @@
 import os
-from data_processing import load_data, get_unique_users
+from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
 from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day
 from analysis import classify_user, linear_regression
 from database import connect_db, verify_total_steps
@@ -9,8 +9,12 @@ DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
 DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
 
 def main():
-    # Load data
-    df = load_data(DATA_FILE)
+    # Load and clean data
+    original_data = DATA_FILE
+    load_and_preview_data(original_data) 
+
+    cleaned_data = clean_and_transform_data(original_data)  
+    summarize_data(cleaned_data) 
 
     # follow-up parameter insert for function update
     unique_users = get_unique_users(df, 'TotalSteps')
