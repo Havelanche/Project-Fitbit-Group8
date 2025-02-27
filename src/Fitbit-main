@@ -5,13 +5,14 @@ from analysis import classify_user, linear_regression
 from data_processing import load_data, get_unique_users
 from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks, plot_heart_rate_and_intensity_by_id
 from analysis import classify_user, linear_regression, analyze_sleep_vs_activity, analyze_sleep_vs_sedentary, calculate_time_block_averages, get_activity_by_time_blocks, get_heart_rate_and_intensity
-from database import connect_db, verify_total_steps
+from database import connect_db, verify_total_steps, compute_sleep_duration
 
 FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
 DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
 DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
 
 def main():
+    
     # Load and clean data
     original_data = DATA_FILE
     load_and_preview_data(original_data) 
@@ -48,6 +49,8 @@ def main():
     if connection:
 
         verify_total_steps(cleaned_data, connection)
+        df_sleep_duration = compute_sleep_duration(connection)
+        print(df_sleep_duration)
         cleaned_data_sleep_duration = analyze_sleep_vs_activity(connection)
         analyze_sleep_vs_sedentary(connection)
 

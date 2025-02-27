@@ -20,6 +20,30 @@ def verify_total_steps(df, connection):
     identical = df_database['total_steps'].equals(df_csv['TotalSteps'])
     print("If the total steps in csv file is indentical as in database?:", identical)
     
+
+def safe_sql_query(connection, query, params=None):
+    try:
+        df = SQL_acquisition(connection, query)
+        return df
+    except Exception as e:
+        print(f"An error occurred while executing the SQL query: {e}")
+        return pd.DataFrame()
+def compute_sleep_duration(connection):
+    query = """
+        SELECT Id, logId, COUNT(*) AS SleepDuration
+        FROM minute_sleep
+        GROUP BY Id, logId
+        ORDER BY Id, logId
+    """
+    df_sleep = safe_sql_query(connection, query)
+
+    if df_sleep.empty:
+        print("No sleep data found in database.")
+        return pd.DataFrame()
     
-    #safe_sql_query()
-    #compute_sleep_duration()
+    df_sleep["logId"] = df_sleep["logId"].astype(str)
+    df_sleep["Id"] = df_sleep["Id"].astype(str)
+    print("Computed Sleep Duration per User and Session:")
+    print(df_sleep.head(10))
+
+    return df_sleep

@@ -5,6 +5,7 @@ def load_data(filename):
     df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
     return df
 
+
 #first-change: add a new parameter "str" to customize the prints data
 def get_unique_users(df, str):
     unique_users = df.groupby('Id')[str].sum().reset_index()

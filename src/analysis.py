@@ -67,7 +67,6 @@ def analyze_sleep_vs_sedentary(connection):
         """
         df_sedentary = pd.read_sql_query(query_sedentary, connection)
 
-        # Merge and format data
         df_sleep["Id"] = df_sleep["Id"].astype(str)
         df_sedentary["Id"] = df_sedentary["Id"].astype(str)
         df_sleep["ActivityDate"] = pd.to_datetime(df_sleep["ActivityDate"]).dt.date.astype(str)
