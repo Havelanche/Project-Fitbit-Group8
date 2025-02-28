@@ -1,15 +1,18 @@
 import os
-# import pandas as pd
 from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
 from analysis import get_unique_users, unique_users_totaldistance, classify_user, linear_regression, check_activity_days, distance_days_correlation 
 from database import connect_db, verify_total_steps
 from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day
+from lala_ex import print_random_message
+
 
 FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
 DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
 DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
 
 def main():
+    print_random_message()
+
     # Load and clean data
     original_data = load_and_preview_data(DATA_FILE) 
 
