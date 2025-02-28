@@ -1,7 +1,6 @@
 import sqlite3 as sql
 import pandas as pd
 
-
 def connect_db(db_name): 
     return sql.connect(db_name)
 
@@ -17,8 +16,7 @@ def verify_total_steps(df, connection):
     df_csv = df.groupby('Id')['TotalSteps'].sum().reset_index()
 
     identical = df_database['total_steps'].equals(df_csv['TotalSteps'])
-    print("If the total steps in csv file is indentical as in database?:", identical)
-    
+    print("If the total steps in csv file is indentical as in database?:", identical) 
 
 def safe_sql_query(connection, query, params=None):
     try:
@@ -27,6 +25,7 @@ def safe_sql_query(connection, query, params=None):
     except Exception as e:
         print(f"An error occurred while executing the SQL query: {e}")
         return pd.DataFrame()
+    
 def compute_sleep_duration(connection):
     query = """
         SELECT Id, logId, COUNT(*) AS SleepDuration

@@ -1,0 +1,75 @@
+# Ignore SQLite database files
+*.db
+*.sqlite3
+
+# Ignore CSV files and raw data (if sensitive)
+*.csv
+/data/
+
+# Ignore Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Ignore log files
+*.log
+
+# Ignore virtual environments
+.venv/
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Ignore IDE and editor-specific files
+.vscode/
+*.code-workspace
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Ignore compiled C extensions
+*.so
+
+# Ignore coverage reports
+htmlcov/
+.coverage
+.coverage.*
+*.cover
+*.py,cover
+*.hypothesis/
+
+# Ignore test and debug artifacts
+.tox/
+.nox/
+coverage.xml
+*.coveragerc
+
+# Ignore cache files
+*.cache
+*.pytest_cache/
+*.ipynb_checkpoints
+
+# Ignore environment variable files
+.env
+.env.*
+*.secrets
+
+# Ignore output files
+*.out
+*.log
+*.tmp
+*.bak
+*.swp
+*.lock
+
+# Ignore plots and generated images
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+/output/
