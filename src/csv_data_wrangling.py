@@ -2,11 +2,13 @@ import pandas as pd
 import numpy as np
 
 def load_and_preview_data(df):
+    df = pd.read_csv(df)  
     print("\nFirst 5 rows of the dataset:")
     print(df.head())
     print("\nSummary Statistics:")
     print(df.describe(include="all"))
     print("\nOriginal Data Preview Done.")
+    return df
 
 def clean_and_transform_data(df):
     print(f"\nColumns in dataset: {df.columns}")
