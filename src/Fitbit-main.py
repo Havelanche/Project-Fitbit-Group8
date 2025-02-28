@@ -14,8 +14,7 @@ DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
 def main():
     
     # Load and clean data
-    original_data = DATA_FILE
-    load_and_preview_data(original_data) 
+    original_data = load_and_preview_data(DATA_FILE) 
 
     cleaned_data = clean_and_transform_data(original_data)  
     summarize_data(cleaned_data) 
