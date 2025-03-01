@@ -2,11 +2,13 @@ import pandas as pd
 import numpy as np
 
 def load_and_preview_data(df):
+    df = pd.read_csv(df)  
     print("\nFirst 5 rows of the dataset:")
     print(df.head())
     print("\nSummary Statistics:")
     print(df.describe(include="all"))
     print("\nOriginal Data Preview Done.")
+    return df
 
 def clean_and_transform_data(df):
     print(f"\nColumns in dataset: {df.columns}")
@@ -17,9 +19,6 @@ def clean_and_transform_data(df):
     if df["TrackerDistance"].equals(df["TotalDistance"]):
         print("\nTrackerDistance is identical to TotalDistance, dropping TrackerDistance column.")
         df = df.drop(columns=["TrackerDistance"])
-        # print(df.duplicate())
-        # screen out the trues n print
-        # duplicate([coloumn names])
 
     duplicate_rows = df[df.duplicated(keep=False)]  # Get all duplicate rows (including the original)
     total_duplicates = duplicate_rows.shape[0]

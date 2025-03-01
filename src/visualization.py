@@ -1,7 +1,9 @@
+import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import seaborn as sns
 import numpy as np
+    
 
 def plot_distance_distribution(df):
     if df.empty: 
@@ -9,9 +11,13 @@ def plot_distance_distribution(df):
         return
     
     plt.figure(figsize=(12, 6))
-    plt.hist(df['TotalDistance'], bins=10, color='orange', edgecolor='black')
-    plt.xticks(np.round(df['TotalDistance'].quantile([0, 0.25, 0.5, 0.75, 1]), 1))
+    counts, bins, patches = plt.hist(df['Total Distance'], bins=10, edgecolor='black')
+    # Apply colormap to each patch based on its height (the number of users in each bin)
+    for i in range(len(patches)):
+        color = cm.YlOrRd(counts[i] / max(counts))  # Normalize count to range [0, 1] for colormap
+        patches[i].set_facecolor(color)
 
+    plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
     plt.xlabel('Total Distance (km)')
     plt.ylabel('Number of Users')
     plt.title('Distribution of Total Distances Covered by 35 Users')
