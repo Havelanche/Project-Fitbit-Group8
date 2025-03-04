@@ -1,9 +1,26 @@
+import numpy as np
+from database import SQL_acquisition
 from visualization import plot_sleep_vs_activity, plot_sleep_vs_sedentary, plot_residuals,plot_heart_rate_and_intensity_by_id, plot_activity_by_time_blocks
-from data_processing import calculate_time_block_averages
+import matplotlib.cm as cm
+import matplotlib.pyplot as plt
 import statsmodels.formula.api as smf
 from scipy.stats import shapiro
 import pandas as pd
 
+def get_unique_users(df):
+    unique_users = df.groupby('Id')['TotalDistance'].sum().reset_index()
+    print(f"\nTotal number of unique users in dataset: {unique_users.shape[0]}")
+    return unique_users
+
+def unique_users_totaldistance(df):
+    unique_users_total_distance = df.groupby('Id')['TotalDistance'].sum().reset_index()
+
+    unique_users_total_distance.insert(0, 'Index', range(1, len(unique_users_total_distance) + 1))
+    unique_users_total_distance.columns = ['User Index', 'User ID', 'Total Distance']
+
+    print("\nTotal distance of each unique user:")
+    print(unique_users_total_distance)
+    return unique_users_total_distance
 
 def classify_user(df):
     user_counts = df.groupby('Id').size()
@@ -14,6 +31,71 @@ def linear_regression(df):
     df['Id'] = df['Id'].astype(str)
     model = smf.ols('Calories ~ TotalSteps + C(Id)', data=df).fit()
     return model
+
+def check_activity_days(df):
+    # Group the data by user ID and count unique dates for each user
+    user_activity_days = df.groupby('Id')['ActivityDate'].nunique().reset_index()
+    user_activity_days.insert(0, 'Index', range(1, len(user_activity_days) + 1))
+    user_activity_days.columns = ['User Index', 'User ID', 'Activity Days']
+
+    # Sort users by activity days for better visualization
+    user_activity_days = user_activity_days.sort_values(by='Activity Days', ascending=False)
+
+    plt.figure(figsize=(12, 6))
+    
+    # Create a bar plot with colors mapped to activity days
+    bars = plt.bar(user_activity_days['User Index'], user_activity_days['Activity Days'], color='skyblue', edgecolor='black')
+
+    # Apply a colormap effect based on activity days
+    cmap = cm.get_cmap("YlOrRd")  
+    max_days = max(user_activity_days['Activity Days'])
+    for bar, days in zip(bars, user_activity_days['Activity Days']):
+        bar.set_facecolor(cmap(days / max_days))  # Normalize activity days for colormap
+
+    plt.xlabel('Users (Sorted by Activity Days)')
+    plt.ylabel('Number of Activity Days')
+    plt.title('Number of Activity Days per User')
+    plt.xticks(ticks=user_activity_days['User Index'], labels=user_activity_days['User ID'], rotation=90)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+    plt.show()
+
+    # Get the top 5 users with the most activity days
+    top_5_users = user_activity_days.sort_values(by='Activity Days', ascending=False).head(5)
+    print(f"\nTop 5 users with the most activity days:\n{top_5_users}")
+
+    return user_activity_days, top_5_users
+
+def distance_days_correlation(unique_user_distance, user_activity_days):
+    # Merge the dataframes on 'User ID' to combine Total Distance and Activity Days
+    merged_df = pd.merge(unique_user_distance, user_activity_days, on='User ID')
+
+    # Get the top 5 users with the most activity days
+    top_5_users = merged_df.sort_values(by='Activity Days', ascending=False).head(5)
+
+    # Calculate Pearson correlation between Total Distance and Activity Days
+    correlation = merged_df["Total Distance"].corr(merged_df["Activity Days"])
+    print(f"\nPearson correlation between Total Distance and Activity Days: {correlation}")
+
+    # Scatter plot to visualize the relationship
+    plt.figure(figsize=(12, 6))
+    # Plot all points (users) first
+    scatter = plt.scatter(merged_df['Activity Days'], merged_df['Total Distance'], 
+                          c=merged_df['Total Distance'], cmap='YlOrRd', edgecolor='black', label='Other Users')
+    
+    # Highlight the top 5 users with larger and different color points
+    plt.scatter(top_5_users['Activity Days'], top_5_users['Total Distance'], 
+                color='green', s=100, edgecolor='black', label='Top 5 Users')  # Larger red points
+
+    plt.colorbar(scatter, label='Total Distance')  # Add color bar to indicate distance
+    plt.xlabel('Activity Days')
+    plt.ylabel('Total Distance')
+    plt.title('Scatter Plot of Total Distance vs. Activity Days')
+    plt.legend()  # Add a legend to differentiate points
+    plt.grid(True)
+    plt.show()  
+
+    return merged_df
 
 def analyze_sleep_vs_activity(connection):
     query_sleep = """
@@ -65,7 +147,6 @@ def analyze_sleep_vs_sedentary(connection):
             FROM daily_activity
         """
         df_sedentary = pd.read_sql_query(query_sedentary, connection)
-
         df_sleep["Id"] = df_sleep["Id"].astype(str)
         df_sedentary["Id"] = df_sedentary["Id"].astype(str)
         df_sleep["ActivityDate"] = pd.to_datetime(df_sleep["ActivityDate"]).dt.date.astype(str)
@@ -94,8 +175,22 @@ def analyze_sleep_vs_sedentary(connection):
 
         return df_merged, model
     except Exception as e:
-        print(f"⚠️ An error occurred: {e}")
+        print(f" An error occurred: {e}")
         return None
+
+def calculate_time_block_averages(hourly_steps_df, hourly_calories_df, minute_sleep_df):
+    time_blocks = [(0, 4), (4, 8), (8, 12), (12, 16), (16, 20), (20, 24)]
+
+    def calculate_avg(df, column):
+        return [df[(df['hour'] >= start) & (df['hour'] < end)][column].mean() for start, end in time_blocks]
+
+    avg_steps = calculate_avg(hourly_steps_df, 'StepTotal')
+    avg_calories = calculate_avg(hourly_calories_df, 'Calories')
+    avg_sleep = [minute_sleep_df[(minute_sleep_df['hour'] >= start) & (minute_sleep_df['hour'] < end)]['value'].sum() / 60
+                 for start, end in time_blocks]
+
+    labels = [f"{start}-{end}" for start, end in time_blocks]
+    return avg_steps, avg_calories, avg_sleep, labels
 
 def get_activity_by_time_blocks(connection):
     hourly_steps_query = "SELECT * FROM hourly_steps;"
@@ -106,9 +201,9 @@ def get_activity_by_time_blocks(connection):
     hourly_calories_df = pd.read_sql(hourly_calories_query, connection)
     minute_sleep_df = pd.read_sql(minute_sleep_query, connection)
 
-    hourly_steps_df['ActivityHour'] = pd.to_datetime(hourly_steps_df['ActivityHour'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
-    hourly_calories_df['ActivityHour'] = pd.to_datetime(hourly_calories_df['ActivityHour'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
-    minute_sleep_df['date'] = pd.to_datetime(minute_sleep_df['date'])
+    hourly_steps_df['ActivityHour'] = pd.to_datetime(hourly_steps_df['ActivityHour'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
+    hourly_calories_df['ActivityHour'] = pd.to_datetime(hourly_calories_df['ActivityHour'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
+    minute_sleep_df['date'] = pd.to_datetime(minute_sleep_df['date'], errors='coerce')
     
     hourly_steps_df['hour'] = hourly_steps_df['ActivityHour'].dt.hour
     hourly_calories_df['hour'] = hourly_calories_df['ActivityHour'].dt.hour
@@ -117,8 +212,6 @@ def get_activity_by_time_blocks(connection):
     avg_steps, avg_calories, avg_sleep, labels = calculate_time_block_averages(
         hourly_steps_df, hourly_calories_df, minute_sleep_df
     )
-
-    plot_activity_by_time_blocks(avg_steps, avg_calories, avg_sleep, labels)
     return hourly_steps_df, hourly_calories_df, minute_sleep_df
 
 # TASK 6: HEART RATE & INTENSITY
@@ -129,59 +222,130 @@ def get_heart_rate_and_intensity(connection, user_id):
     heart_rate_df = pd.read_sql(heart_rate_query, connection)
     hourly_intensity_df = pd.read_sql(hourly_intensity_query, connection)
 
-    heart_rate_df['Time'] = pd.to_datetime(heart_rate_df['Time'])
-    hourly_intensity_df['ActivityHour'] = pd.to_datetime(hourly_intensity_df['ActivityHour'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
+    heart_rate_df['Time'] = pd.to_datetime(heart_rate_df['Time'], errors='coerce')
+    hourly_intensity_df['ActivityHour'] = pd.to_datetime(hourly_intensity_df['ActivityHour'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
 
     plot_heart_rate_and_intensity_by_id(heart_rate_df, hourly_intensity_df, user_id)
 
-def merge_and_group_data(connection):
-    query = """
-        SELECT da.Id, da.ActivityDate, da.TotalSteps, da.Calories, da.SedentaryMinutes,
-               ms.value AS SleepMinutes, wl.WeightKg, wl.BMI
-        FROM daily_activity da
-        LEFT JOIN minute_sleep ms ON da.Id = ms.Id AND da.ActivityDate = ms.date
-        LEFT JOIN weight_log wl ON da.Id = wl.Id AND da.ActivityDate = wl.Date
-    """
-    df_merged = pd.read_sql(query, connection)
 
-    # Group by Id to get summary stats per individual
-    df_grouped = df_merged.groupby('Id').agg({
-        'TotalSteps': 'mean',
-        'Calories': 'mean',
-        'SedentaryMinutes': 'mean',
-        'SleepMinutes': 'mean',
-        'WeightKg': 'mean',
-        'BMI': 'mean'
-    }).reset_index()
+def aggregate_data(df, raw_data=None, group_by='Id'):
+    try:
+        print("Columns before aggregation:", df.columns)
+        if 'ActivityDate' not in df.columns:
+            print("Skipping aggregation — 'ActivityDate' column missing.")
+            return df
+        
+        print("Running aggregate_data function")
+        print("Columns at start:", df.columns)
+        
+        if 'ActivityDate' not in df.columns:
+            raise KeyError("Column 'ActivityDate' not found in DataFrame")
+        
+        df['date'] = pd.to_datetime(df['ActivityDate'], errors='coerce')
+        df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
+        df['Hour'] = df['ActivityDate'].dt.hour
+        group_columns = [group_by, 'DayOfWeek', 'Hour']
+        
+        aggregated = df.groupby(group_columns).agg({
+            'TotalSteps': ['mean', 'median', 'std'],
+            'Calories': ['mean', 'median', 'std'],
+            'SedentaryMinutes': ['mean', 'median', 'std'],
+            'SleepMinutes': ['mean', 'median', 'std'],
+            'WeightKg': ['mean', 'median', 'std'],
+            'BMI': ['mean', 'median', 'std']
+        }).reset_index()
+        aggregated.columns = [
+            '_'.join(col).strip('_') if isinstance(col, tuple) else col 
+            for col in aggregated.columns
+        ]
 
-    print("Grouped data by individual:")
-    print(df_grouped.head())
+        print("Cleaned column names:", aggregated.columns)
 
-    return df_grouped
+        print(f"Data aggregated by {group_columns}")
+        print(f"Aggregated data shape: {aggregated.shape}")
+        
+        return aggregated
+    
+    except Exception as e:
+        print(f"Error in aggregate_data: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+def merge_and_group_data(df):
+    try:
+        # Fetch data from tables
+        daily_activity = pd.read_sql("SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes FROM daily_activity", df)
+        minute_sleep = pd.read_sql("SELECT Id, date AS ActivityDate, value AS SleepMinutes FROM minute_sleep", df)
+        weight_log = pd.read_sql("SELECT Id, Date AS ActivityDate, WeightKg, BMI FROM weight_log", df)
+        
+        # Convert dates
+        daily_activity['ActivityDate'] = pd.to_datetime(daily_activity['ActivityDate'], format='%m/%d/%Y', errors='coerce')
+        minute_sleep['ActivityDate'] = pd.to_datetime(minute_sleep['ActivityDate'], format='%m/%d/%Y', errors='coerce')
+        weight_log['ActivityDate'] = pd.to_datetime(weight_log['ActivityDate'], format='%m/%d/%Y', errors='coerce')
+
+        merged_df = daily_activity.merge(minute_sleep, on=['Id', 'ActivityDate'], how='left')
+        merged_df = merged_df.merge(weight_log, on=['Id', 'ActivityDate'], how='left')
+
+        merged_df = handle_missing_weight_data(merged_df)
+        return merged_df
+
+    except Exception as e:
+        print(f"Error in merge_and_group_data: {e}")
+        return None
 
 def statistical_summary(df, group_by='Id'):
-    summary = df.groupby(group_by).agg({
-        'TotalSteps': ['mean', 'median', 'std'],
-        'Calories': ['mean', 'median', 'std'],
-        'SedentaryMinutes': ['mean', 'median', 'std'],
-        'SleepMinutes': ['mean', 'median', 'std'],
-        'WeightKg': ['mean', 'median', 'std'],
-        'BMI': ['mean', 'median', 'std']
-    }).reset_index()
+    # Find columns that match the pattern (e.g., 'TotalSteps_mean', 'Calories_median', etc.)
+    metrics = [
+        'TotalSteps', 'Calories', 'SedentaryMinutes', 
+        'SleepMinutes', 'WeightKg', 'BMI'
+    ]
+    agg_funcs = ['mean', 'median', 'std']
+    
+    # Dynamically construct the correct column names
+    columns = [f"{metric}_{func}" for metric in metrics for func in agg_funcs]
+    available_columns = [col for col in columns if col in df.columns]
+    
+    if not available_columns:
+        print("No aggregated columns found for summary.")
+        return None
+    
+    try:
+        summary = df.groupby(group_by)[available_columns].mean().reset_index()
+        
+        print(f"Statistical Summary (grouped by {group_by}):")
+        print(summary)
+        return summary
+    
+    except Exception as e:
+        print(f"Error in statistical summary: {e}")
+        print("Available columns:", df.columns.tolist())
+        return None
 
-    print(f"Statistical Summary (grouped by {group_by}):")
-    print(summary)
-    return summary
+# def statistical_summary(df, group_by='Id'):
+#     summary = df.groupby(group_by).agg({
+#         'TotalSteps': ['mean', 'median', 'std'],
+#         'Calories': ['mean', 'median', 'std'],
+#         'SedentaryMinutes': ['mean', 'median', 'std'],
+#         'SleepMinutes': ['mean', 'median', 'std'],
+#         'WeightKg': ['mean', 'median', 'std'],
+#         'BMI': ['mean', 'median', 'std']
+#     }).reset_index()
+
+#     print(f"Statistical Summary (grouped by {group_by}):")
+#     print(summary)
+#     return summary
 
 def activity_vs_sleep_insights(df):
-    df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
+    df['ActivityDate'] = pd.to_datetime(df['ActivityDate'], errors='coerce')
     df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
     df['Weekend'] = df['DayOfWeek'].isin(['Saturday', 'Sunday'])
 
+    # Adjust for new column names
     weekend_comparison = df.groupby('Weekend').agg({
-        'TotalSteps': 'mean',
-        'SleepMinutes': 'mean',
-        'Calories': 'mean'
+        'TotalSteps_mean': 'mean',
+        'SleepMinutes_sum': 'sum',
+        'Calories_mean': 'mean'
     }).reset_index()
 
     print("Comparison of activity and sleep during weekdays vs weekends:")
@@ -189,37 +353,66 @@ def activity_vs_sleep_insights(df):
 
     return weekend_comparison
 
-def weather_vs_activity(connection, weather_df):
-    query = """
-        SELECT da.Id, da.ActivityDate, da.TotalSteps, da.Calories, wd.Temperature, wd.Precipitation
-        FROM daily_activity da
-        LEFT JOIN weather_data wd ON da.ActivityDate = wd.Date
-    """
-    df_merged = pd.read_sql(query, connection)
+# def activity_vs_sleep_insights(df):
+#     df['ActivityDate'] = pd.to_datetime(df['ActivityDate'])
+#     df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
+#     df['Weekend'] = df['DayOfWeek'].isin(['Saturday', 'Sunday'])
 
-    correlation = df_merged[['TotalSteps', 'Calories', 'Temperature', 'Precipitation']].corr()
-    print("Correlation between weather factors and activity levels:")
-    print(correlation)
+#     weekend_comparison = df.groupby('Weekend').agg({
+#         'TotalSteps': 'mean',
+#         'SleepMinutes': 'sum',
+#         'Calories': 'mean'
+#     }).reset_index()
 
-    return correlation
+#     print("Comparison of activity and sleep during weekdays vs weekends:")
+#     print(weekend_comparison)
 
-def handle_missing_weight_data(connection):
-    query = "SELECT Id, WeightKg, Height, BMI FROM weight_log"
-    df_weight = pd.read_sql(query, connection)
+#     return weekend_comparison
 
-    # Calculate BMI if missing
-    df_weight['BMI'] = df_weight.apply(
-        lambda row: row['WeightKg'] / (row['Height'] ** 2) if pd.isnull(row['BMI']) and not pd.isnull(row['Height']) else row['BMI'], 
-        axis=1
-    )
 
-    # Fill missing Weight using BMI and Height
-    df_weight['WeightKg'] = df_weight.apply(
-        lambda row: row['BMI'] * (row['Height'] ** 2) if pd.isnull(row['WeightKg']) and not pd.isnull(row['BMI']) and not pd.isnull(row['Height']) else row['WeightKg'], 
-        axis=1
-    )
+def handle_missing_weight_data(df):
+    # Columns that can be median-filled
+    median_fill_cols = ['TotalSteps', 'Calories', 'SedentaryMinutes', 'SleepMinutes']
+    for col in median_fill_cols:
+        df[median_fill_cols] = df[median_fill_cols].fillna(df[median_fill_cols].median())
+    
+    # Define a function to estimate BMI based on weight
+    def estimate_bmi(weight):
+        if pd.isna(weight):
+            return np.nan
+        
+        # Population-based BMI estimation ranges
+        if weight < 50:
+            return 20  # Typical for smaller individuals
+        elif weight < 70:
+            return 22  # Average range
+        elif weight < 90:
+            return 25  # Higher range
+        elif weight < 110:
+            return 28  # Overweight range
+        else:
+            return 30  # Obese range
+    
+    # Estimate BMI if missing
+    df['BMI'] = df['BMI'].fillna(df['WeightKg'].apply(estimate_bmi))
+    df[['BMI', 'WeightKg']] = df[['BMI', 'WeightKg']].fillna(df[['BMI', 'WeightKg']].median())
 
-    print("Missing values handled in weight_log:")
-    print(df_weight.isnull().sum())
+    print("Missing weight data handled.")
+    return df
+    
+def fill_missing_values(df):
+    num_cols = ['TotalSteps', 'Calories', 'SedentaryMinutes', 'SleepMinutes', 'WeightKg', 'BMI']
+    for col in num_cols:
+        df[col] = df[col].fillna(df[col].median())  
+    if 'ActivityDate' in df.columns:
+        df['ActivityDate'] = pd.to_datetime(df['ActivityDate'], errors='coerce')
+        df = df.sort_values(by=['Id', 'ActivityDate'])
+        df['ActivityDate'] = df['ActivityDate'].fillna(method='ffill')
 
-    return df_weight
+    if 'DayOfWeek' in df.columns:
+        df['DayOfWeek'] = df['DayOfWeek'].fillna('Unknown')
+
+    print("Missing values filled.")
+    print(df.isnull().sum())
+
+    return df

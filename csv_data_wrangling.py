@@ -1,50 +1,25 @@
 import pandas as pd
-import re
+import numpy as np
 
-def load_and_preview_data(file_path):
-    """Loads the CSV file with correct delimiter and previews the data."""
-    try:
-        df = pd.read_csv(file_path, sep=';', engine='python')
-        print("\n Dataset Preview (First 5 Rows):")
-        print(df.head())
-        
-        print("\nColumn names:", df.columns.tolist())
-
-        print("\n Summary Statistics:")
-        print(df.describe(include="all"))
-
-        print("\n Data preview completed.")
-        return df
-    except FileNotFoundError:
-        print(f" Error: File not found at {file_path}")
-    except pd.errors.ParserError:
-        print(" Error: Failed to parse the CSV file. Check the delimiter or file format.")
+def load_and_preview_data(df):
+    df = pd.read_csv(df, sep=None, engine='python')  
+    print("\nFirst 5 rows of the dataset:")
+    print(df.head())
+    print("\nSummary Statistics:")
+    print(df.describe(include="all"))
+    print("\nOriginal Data Preview Done.")
+    return df
 
 def clean_and_transform_data(df):
     print(f"\nColumns in dataset: {df.columns}")
+    
+    if "ActivityDate" not in df.columns:
+        raise ValueError("Column 'ActivityDate' not found. Check dataset headers.")
+    
+    if df["TrackerDistance"].equals(df["TotalDistance"]):
+        print("\nTrackerDistance is identical to TotalDistance, dropping TrackerDistance column.")
+        df = df.drop(columns=["TrackerDistance"])
 
-    df.columns = df.columns.str.strip().str.replace(';', '').str.replace(' ', '_')
-    df['ActivityDate'] = pd.to_datetime(df['ActivityDate'], errors='coerce')
-
-    def clean_distance(value):
-        if isinstance(value, str):
-            match = re.search(r'\d+(\.\d+)?', value)
-            return float(match.group()) if match else None
-        return value
-
-    distance_cols = ['TotalDistance', 'TrackerDistance', 'LoggedActivitiesDistance', 
-                     'VeryActiveDistance', 'ModeratelyActiveDistance', 'LightActiveDistance', 'SedentaryActiveDistance']
-
-    for col in distance_cols:
-        if col in df.columns:
-            df[col] = df[col].apply(clean_distance)
-
-    numeric_cols = ['TotalSteps', 'Calories', 'VeryActiveMinutes', 'FairlyActiveMinutes',
-                    'LightlyActiveMinutes', 'SedentaryMinutes']
-
-    for col in numeric_cols:
-        df[col] = pd.to_numeric(df[col], errors='coerce')
-        
     duplicate_rows = df[df.duplicated(keep=False)]  # Get all duplicate rows (including the original)
     total_duplicates = duplicate_rows.shape[0]
     
@@ -54,20 +29,26 @@ def clean_and_transform_data(df):
         print("Duplicate rows:")
         print(duplicate_rows)
     else:
-        print("\nNo duplicate rows found.") 
-
-    df_cleaned = df.drop_duplicates().sort_values(by=["Id", "ActivityDate"])
-
-    print("\n Data cleaning and transformation completed.")
-    print(df_cleaned.head())
-
+        print("\nNo duplicate rows found.")
+    
+    # Clean the dataframe: Remove duplicates, drop unnecessary columns, and sort the data
+    df_cleaned = (
+        df.copy()
+        .drop_duplicates()  # Remove duplicate rows
+        .assign(ActivityDate=lambda df: pd.to_datetime(df["ActivityDate"], format="%m/%d/%Y"))  # Convert ActivityDate to datetime
+        # .drop(columns=["LoggedActivitiesDistance"], errors="ignore")  # Drop unnecessary columns
+        .sort_values(by=["Id", "ActivityDate"])  # Sort by Id, then by ActivityDate
+    )
+    
+    # Ensure the correct data types for relevant columns
+    df_cleaned["TotalSteps"] = df_cleaned["TotalSteps"].astype(int)  # Ensure steps are integers
+    df_cleaned["TotalDistance"] = df_cleaned["TotalDistance"].astype(float)  # Ensure distance is a float
+    
     return df_cleaned
 
 def summarize_data(df):
-    print("\n Summary Statistics of Cleaned Data:")
+    print("\nSummary Statistics of Cleaned Data:")
     print(df.describe(include="all"))
-
-    print("\n Preview of Cleaned Dataset (First 5 Rows):")
+    print("\nFirst 5 rows of the cleaned dataset:")
     print(df.head())
-
-    print("\n Cleaned data summary completed.")
+    print("\nCleaned Data Preview Done.")

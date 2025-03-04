@@ -1,17 +1,23 @@
 import matplotlib.pyplot as plt
 import statsmodels.api as sm
+import matplotlib.cm as cm
 import seaborn as sns
 import numpy as np
 from database import SQL_acquisition
+
 def plot_distance_distribution(df):
     if df.empty: 
         print('No data available.')
         return
     
     plt.figure(figsize=(12, 6))
-    plt.hist(df['TotalDistance'], bins=10, color='orange', edgecolor='black')
-    plt.xticks(np.round(df['TotalDistance'].quantile([0, 0.25, 0.5, 0.75, 1]), 1))
+    counts, bins, patches = plt.hist(df['Total Distance'], bins=10, edgecolor='black')
+    # Apply colormap to each patch based on its height (the number of users in each bin)
+    for i in range(len(patches)):
+        color = cm.YlOrRd(counts[i] / max(counts))  # Normalize count to range [0, 1] for colormap
+        patches[i].set_facecolor(color)
 
+    plt.xticks(bins, labels=[f"{int(b)}" for b in bins])
     plt.xlabel('Total Distance (km)')
     plt.ylabel('Number of Users')
     plt.title('Distribution of Total Distances Covered by 35 Users')
@@ -149,32 +155,32 @@ def plot_heart_rate_and_intensity_by_id(heart_rate_df, hourly_intensity_df, user
     plt.tight_layout()
     plt.show()
     
-def plot_grouped_data(df_grouped):
+def plot_grouped_data(df_grouped, metric='TotalSteps', group_by='Id'):
     plt.figure(figsize=(12, 6))
-    sns.barplot(x='Id', y='TotalSteps',hue='Id', data=df_grouped, palette='viridis', legend=False)
+    sns.barplot(x=group_by, y=metric, hue=group_by, data=df_grouped, palette='viridis', legend=False)
     plt.xticks(rotation=45)
-    plt.title('Average Total Steps by User')
-    plt.xlabel('User ID')
-    plt.ylabel('Average Total Steps')
+    plt.title(f'Average {metric} by {group_by}')
+    plt.xlabel(group_by)
+    plt.ylabel(f'Average {metric}')
     plt.tight_layout()
     plt.show()
 
-def plot_statistical_summary(df_summary):
+def plot_statistical_summary(df_summary, group_by='Id'):
     metrics = ['TotalSteps', 'Calories', 'SedentaryMinutes', 'SleepMinutes', 'WeightKg', 'BMI']
     stat_types = ['mean', 'median', 'std']
     
     for metric in metrics:
         plt.figure(figsize=(10, 5))
         for stat in stat_types:
-            sns.lineplot(x=df_summary['Id'], y=df_summary[(metric, stat)], label=f'{metric} ({stat})')
+            sns.lineplot(x=df_summary[group_by], y=df_summary[(metric, stat)], label=f'{metric} ({stat})')
         plt.xticks(rotation=45)
-        plt.title(f'Statistics for {metric} by User')
-        plt.xlabel('User ID')
+        plt.title(f'Statistics for {metric} by {group_by}')
+        plt.xlabel(group_by)
         plt.ylabel(metric)
         plt.legend()
         plt.tight_layout()
         plt.show()
-        
+
 def calories_vs_heart_rate(connection):
     query = '''
     SELECT hr.Id, hr.Time, hr.Value AS HeartRate, hc.Calories
@@ -188,11 +194,9 @@ def calories_vs_heart_rate(connection):
         print("No data available for Calories vs. Heart Rate.")
         return
 
-    # Linear regression model
     model = sm.OLS(df['Calories'], sm.add_constant(df['HeartRate'])).fit()
     print(model.summary())
 
-    # Scatter plot
     plt.figure(figsize=(10, 6))
     sns.scatterplot(data=df, x='HeartRate', y='Calories', color='blue', alpha=0.6)
     sns.regplot(data=df, x='HeartRate', y='Calories', scatter=False, color='red')
