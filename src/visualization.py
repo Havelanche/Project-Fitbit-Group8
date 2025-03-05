@@ -114,26 +114,41 @@ def plot_activity_by_time_blocks(avg_steps, avg_calories, avg_sleep, labels):
     if not (avg_steps and avg_calories and avg_sleep):
         print("No data available for time block plots.")
         return
+    
     x = np.arange(len(labels))
+    bar_width = 0.4
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, axs = plt.subplots(3, 1, figsize=(10, 12))
 
-    bar_width = 0.2
-    ax.bar(x - bar_width, avg_steps, bar_width, label='Steps', color='r')
-    ax.bar(x, avg_calories, bar_width, label='Calories', color='b')
-    ax.bar(x + bar_width, avg_sleep, bar_width, label='Sleep (mins)', color='g')
+    # Plot 1: Steps
+    axs[0].bar(x, avg_steps, bar_width, color='r', label='Steps')
+    axs[0].set_xlabel('Time Block')
+    axs[0].set_ylabel('Steps')
+    axs[0].set_title('Average Steps per 4-Hour Block')
+    axs[0].set_xticks(x)
+    axs[0].set_xticklabels(labels)
+    axs[0].legend()
 
-    # Adding labels and title
-    ax.set_xlabel('Time Block')
-    ax.set_ylabel('Average')
-    ax.set_title('Average Steps, Calories, and Sleep per 4-Hour Block')
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels)
-    ax.legend()
+    # Plot 2: Calories
+    axs[1].bar(x, avg_calories, bar_width, color='b', label='Calories')
+    axs[1].set_xlabel('Time Block')
+    axs[1].set_ylabel('Calories')
+    axs[1].set_title('Average Calories per 4-Hour Block')
+    axs[1].set_xticks(x)
+    axs[1].set_xticklabels(labels)
+    axs[1].legend()
 
-    # Show the plot
+    # Plot 3: Sleep
+    axs[2].bar(x, avg_sleep, bar_width, color='g', label='Sleep (mins)')
+    axs[2].set_xlabel('Time Block')
+    axs[2].set_ylabel('Minutes')
+    axs[2].set_title('Average Sleep per 4-Hour Block')
+    axs[2].set_xticks(x)
+    axs[2].set_xticklabels(labels)
+    axs[2].legend()
+
     plt.tight_layout()
-    plt.show()   
+    plt.show()
 
 #task 6    
 def plot_heart_rate_and_intensity_by_id(heart_rate_df, hourly_intensity_df, user_id):
