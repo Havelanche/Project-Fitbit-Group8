@@ -1,4 +1,6 @@
+import traceback
 import matplotlib.pyplot as plt
+import pandas as pd
 import statsmodels.api as sm
 import matplotlib.cm as cm
 import seaborn as sns
@@ -166,42 +168,57 @@ def plot_grouped_data(df_grouped, metric='TotalSteps', group_by='Id'):
     plt.show()
 
 def plot_statistical_summary(df_summary, group_by='Id'):
-    metrics = ['TotalSteps', 'Calories', 'SedentaryMinutes', 'SleepMinutes', 'WeightKg', 'BMI']
-    stat_types = ['mean', 'median', 'std']
-    
+    metrics = ['TotalSteps_mean', 'Calories_mean', 'SedentaryMinutes_mean', 'SleepMinutes_mean', 'WeightKg_mean', 'BMI_mean']
+
+    plt.figure(figsize=(10, 5))
     for metric in metrics:
-        plt.figure(figsize=(10, 5))
-        for stat in stat_types:
-            sns.lineplot(x=df_summary[group_by], y=df_summary[(metric, stat)], label=f'{metric} ({stat})')
-        plt.xticks(rotation=45)
-        plt.title(f'Statistics for {metric} by {group_by}')
-        plt.xlabel(group_by)
-        plt.ylabel(metric)
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
+        if metric in df_summary.columns:
+            sns.lineplot(x=df_summary[group_by], y=df_summary[metric], label=metric)
+
+    plt.xticks(rotation=45)
+    plt.title(f'Statistics by {group_by}')
+    plt.xlabel(group_by)
+    plt.ylabel('Values')
+    plt.legend(title='Metrics')
+    plt.tight_layout()
+    plt.show()
+
 
 def calories_vs_heart_rate(connection):
-    query = '''
-    SELECT hr.Id, hr.Time, hr.Value AS HeartRate, hc.Calories
-    FROM heart_rate hr
-    JOIN hourly_calories hc ON hr.Id = hc.Id 
-    AND strftime('%H:%M', hr.Time) = strftime('%H:%M', hc.ActivityHour)
-    '''
-    df = SQL_acquisition(connection, query)
+    try:
+        print("Running calories_vs_heart_rate...")
 
-    if df.empty:
-        print("No data available for Calories vs. Heart Rate.")
-        return
+        query = '''
+        SELECT hr.Id, hr.Time, hr.Value AS HeartRate, hc.Calories
+        FROM heart_rate hr
+        JOIN hourly_calories hc ON hr.Id = hc.Id 
+        AND strftime('%H:%M', hr.Time) = strftime('%H:%M', hc.ActivityHour)
+        '''
+        df = SQL_acquisition(connection, query)
+        if df.empty:
+            print("No data available for Calories vs. Heart Rate.")
+            return
 
-    model = sm.OLS(df['Calories'], sm.add_constant(df['HeartRate'])).fit()
-    print(model.summary())
+        df['Time'] = pd.to_datetime(df['Time'], errors='coerce')
+        df.dropna(subset=['HeartRate', 'Calories'], inplace=True)
 
-    plt.figure(figsize=(10, 6))
-    sns.scatterplot(data=df, x='HeartRate', y='Calories', color='blue', alpha=0.6)
-    sns.regplot(data=df, x='HeartRate', y='Calories', scatter=False, color='red')
-    plt.title('Calories vs. Heart Rate')
-    plt.xlabel('Heart Rate (bpm)')
-    plt.ylabel('Calories Burned')
-    plt.grid(True)
-    plt.show()
+        if df[['HeartRate', 'Calories']].isnull().all().any():
+            print("Insufficient data for modeling.")
+            return
+
+        model = sm.OLS(df['Calories'], sm.add_constant(df['HeartRate'])).fit()
+        print(model.summary())
+
+        plt.figure(figsize=(10, 6))
+        sns.scatterplot(data=df, x='HeartRate', y='Calories', color='blue', alpha=0.6)
+        sns.regplot(data=df, x='HeartRate', y='Calories', scatter=False, color='red')
+        plt.title('Calories vs. Heart Rate')
+        plt.xlabel('Heart Rate (bpm)')
+        plt.ylabel('Calories Burned')
+        plt.grid(True)
+        plt.tight_layout() 
+        plt.show()
+
+    except Exception as e:
+        print(f"Error in calories_vs_heart_rate: {e}")
+        traceback.print_exc()

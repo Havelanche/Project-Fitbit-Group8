@@ -1,3 +1,4 @@
+import traceback
 from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
 from visualization import (
     plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day,
@@ -53,13 +54,14 @@ def proccess_data():
         
     except Exception as e:
         print(f"An error occurred: {e}")
+        traceback.print_exc() 
     
  
 def analyzing_dataframe(connection, cleaned_data):
     try:
-        verify_total_steps(cleaned_data, connection)
-        df_sleep_duration = compute_sleep_duration(connection)
-        print(df_sleep_duration)
+        # verify_total_steps(cleaned_data, connection)
+        # df_sleep_duration = compute_sleep_duration(connection)
+        # print(df_sleep_duration)
 
         # analyze_sleep_vs_activity(connection)
         # analyze_sleep_vs_sedentary(connection)
@@ -73,23 +75,28 @@ def analyzing_dataframe(connection, cleaned_data):
         # Load raw data for ActivityDate reference
         query = "SELECT * FROM daily_activity"
         raw_data = SQL_acquisition(connection, query)
-        # Fetch and merge data
-        print("merge")
+        print("merging...")
         df_grouped = merge_and_group_data(connection)
-        print("aggregate")
+        
+        print("aggregate...")
         df_aggregated = aggregate_data(df_grouped, raw_data)
-        print("fill")
+        
+        print("filling the missing values...")
         print("Column names new:", df_aggregated.columns.tolist())
         df_aggregated = fill_missing_values(df_aggregated)
+        
+        print("Generating statistical summary...")
+        df_summary = statistical_summary(df_aggregated)         
          
         plot_grouped_data(df_grouped)
-        df_summary = statistical_summary(df_aggregated)
         plot_statistical_summary(df_summary)
-
+        print("calories vs heart rate...")
         calories_vs_heart_rate(connection)
+        calories_vs_heart_rate(df_grouped)
         
     except Exception as e:
         print(f"An error occurred while analyzing the dataframe: {e}")
+        traceback.print_exc()  
         connection.close()
            
 def main():
@@ -101,6 +108,7 @@ def main():
             connection.close()  # Close the database connection after analyzing.
     except Exception as e:
         print(f"An error occurred in the main: {e}")
+        traceback.print_exc()
         connection.close()  # Close the database connection if an error occurs at any point.
         
 if __name__ == '__main__':
