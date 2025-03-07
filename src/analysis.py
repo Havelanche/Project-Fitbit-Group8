@@ -95,6 +95,19 @@ def distance_days_correlation(unique_user_distance, user_activity_days):
 
     return merged_df
 
+
+def SQL_acquisition(connection, query):
+    try:
+        cursor = connection.cursor()
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        df = pd.DataFrame(rows, columns=[x[0] for x in cursor.description])
+        return df
+    except Exception as e:
+        print(f"An error occurred while executing the SQL query: {e}")
+        return pd.DataFrame()
+    
+
 def analyze_sleep_vs_activity(connection):
     query_sleep = """
         SELECT Id, date AS ActivityDate, SUM(value) AS SleepDuration
@@ -102,7 +115,7 @@ def analyze_sleep_vs_activity(connection):
         WHERE value > 0
         GROUP BY Id, ActivityDate
     """
-    df_sleep = pd.read_sql_query(query_sleep, connection)
+    df_sleep = SQL_acquisition(connection, query_sleep)
     df_sleep["SleepDuration"] = df_sleep["SleepDuration"] / 60
 
     query_activity = """
@@ -110,7 +123,7 @@ def analyze_sleep_vs_activity(connection):
                (VeryActiveMinutes + FairlyActiveMinutes + LightlyActiveMinutes) AS TotalActiveMinutes
         FROM daily_activity
     """
-    df_activity = pd.read_sql_query(query_activity, connection)
+    df_activity = SQL_acquisition(connection, query_activity)
 
     # Prepare and merge data
     df_sleep["Id"] = df_sleep["Id"].astype(str)
@@ -137,14 +150,14 @@ def analyze_sleep_vs_sedentary(connection):
             WHERE value > 0
             GROUP BY Id, ActivityDate
         """
-        df_sleep = pd.read_sql_query(query_sleep, connection)
+        df_sleep = SQL_acquisition(connection, query_sleep)
         df_sleep["SleepDuration"] = df_sleep["SleepDuration"] / 60
 
         query_sedentary = """
             SELECT Id, ActivityDate, SedentaryMinutes
             FROM daily_activity
         """
-        df_sedentary = pd.read_sql_query(query_sedentary, connection)
+        df_sedentary = SQL_acquisition(connection, query_sedentary)
 
         df_sleep["Id"] = df_sleep["Id"].astype(str)
         df_sedentary["Id"] = df_sedentary["Id"].astype(str)
@@ -191,14 +204,15 @@ def calculate_time_block_averages(hourly_steps_df, hourly_calories_df, minute_sl
     labels = [f"{start}-{end}" for start, end in time_blocks]
     return avg_steps, avg_calories, avg_sleep, labels
 
+
 def get_activity_by_time_blocks(connection):
     hourly_steps_query = "SELECT * FROM hourly_steps;"
     hourly_calories_query = "SELECT * FROM hourly_calories;"
     minute_sleep_query = "SELECT * FROM minute_sleep;"
 
-    hourly_steps_df = pd.read_sql(hourly_steps_query, connection)
-    hourly_calories_df = pd.read_sql(hourly_calories_query, connection)
-    minute_sleep_df = pd.read_sql(minute_sleep_query, connection)
+    hourly_steps_df = SQL_acquisition(connection, hourly_steps_query)
+    hourly_calories_df = SQL_acquisition(connection, hourly_calories_query)
+    minute_sleep_df = SQL_acquisition(connection, minute_sleep_query)
 
     hourly_steps_df['ActivityHour'] = pd.to_datetime(hourly_steps_df['ActivityHour'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
     hourly_calories_df['ActivityHour'] = pd.to_datetime(hourly_calories_df['ActivityHour'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
@@ -208,9 +222,6 @@ def get_activity_by_time_blocks(connection):
     hourly_calories_df['hour'] = hourly_calories_df['ActivityHour'].dt.hour
     minute_sleep_df['hour'] = minute_sleep_df['date'].dt.hour
 
-    avg_steps, avg_calories, avg_sleep, labels = calculate_time_block_averages(
-        hourly_steps_df, hourly_calories_df, minute_sleep_df
-    )
     return hourly_steps_df, hourly_calories_df, minute_sleep_df
 
 # TASK 6: HEART RATE & INTENSITY
@@ -218,11 +229,57 @@ def get_heart_rate_and_intensity(connection, user_id):
     heart_rate_query = f"SELECT * FROM heart_rate WHERE Id = {user_id};"
     hourly_intensity_query = f"SELECT * FROM hourly_intensity WHERE Id = {user_id};"
 
-    heart_rate_df = pd.read_sql(heart_rate_query, connection)
-    hourly_intensity_df = pd.read_sql(hourly_intensity_query, connection)
+    heart_rate_df = SQL_acquisition(connection, heart_rate_query)
+    hourly_intensity_df = SQL_acquisition(connection, hourly_intensity_query)
 
     heart_rate_df['Time'] = pd.to_datetime(heart_rate_df['Time'])
     hourly_intensity_df['ActivityHour'] = pd.to_datetime(hourly_intensity_df['ActivityHour'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
 
+    return heart_rate_df, hourly_intensity_df
 
-    plot_heart_rate_and_intensity_by_id(heart_rate_df, hourly_intensity_df, user_id)
+
+# TASK 7: Weather Impact
+def get_weather_and_daily_activity(connection, df_weather):
+    query_active = """
+    SELECT ActivityDate, AVG(LightlyActiveMinutes) AS LightlyActive, 
+    AVG(FairlyActiveMinutes) AS FairlyActive, 
+    AVG(VeryActiveMinutes) AS VeryActive
+    FROM daily_activity GROUP BY ActivityDate
+    """
+    query_distance = """
+    SELECT ActivityDate, AVG(TotalDistance) AS TotalDistance FROM daily_activity GROUP BY ActivityDate
+    """
+    query_steps = """
+    SELECT ActivityDate, AVG(TotalSteps) AS TotalSteps FROM daily_activity GROUP BY ActivityDate
+    """
+    # Fetch activity & distance data from database
+    df_activity = SQL_acquisition(connection, query_active)
+    df_distance = SQL_acquisition(connection, query_distance)
+    df_steps = SQL_acquisition(connection, query_steps)
+
+    # Ensure date format consistency
+    df_activity['ActivityDate'] = pd.to_datetime(df_activity['ActivityDate'])
+    df_distance['ActivityDate'] = pd.to_datetime(df_distance['ActivityDate'])
+    df_steps['ActivityDate'] = pd.to_datetime(df_steps['ActivityDate'])
+
+    df_weather['datetime'] = pd.to_datetime(df_weather['datetime'])
+    
+    # Merge activity & weather data
+    df_activity_merged = df_activity.merge(df_weather[['datetime', 'temp']], left_on='ActivityDate', right_on='datetime', how='inner')
+    df_distance_merged = df_distance.merge(df_weather[['datetime', 'temp']], left_on='ActivityDate', right_on='datetime', how='inner')
+    df_steps_merged = df_steps.merge(df_weather[['datetime', 'temp']], left_on='ActivityDate', right_on='datetime', how='inner')
+    # Step 4: Create temperature bins
+    temp_bins = list(range(int(df_weather['temp'].min()), int(df_weather['temp'].max()) + 5, 5))
+    temp_labels = [f"{t}-{t+5}" for t in temp_bins[:-1]]
+
+    df_activity_merged['temp_bin'] = pd.cut(df_activity_merged['temp'], bins=temp_bins, labels=temp_labels)
+    df_distance_merged['temp_bin'] = pd.cut(df_distance_merged['temp'], bins=temp_bins, labels=temp_labels)
+    df_steps_merged['temp_bin'] = pd.cut(df_steps_merged['temp'], bins=temp_bins, labels=temp_labels)
+
+    # Step 5: Group by temperature bins
+    df_final_activity = df_activity_merged.groupby('temp_bin', observed=False)[['LightlyActive', 'FairlyActive', 'VeryActive']].mean().reset_index()
+    df_final_distance = df_distance_merged.groupby('temp_bin', observed=False)[['TotalDistance']].mean().reset_index()
+    df_final_steps = df_steps_merged.groupby('temp_bin', observed=False)[['TotalSteps']].mean().reset_index()
+
+    return df_final_activity, df_final_distance, df_final_steps
+    # Load weather data from CSV
