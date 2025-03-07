@@ -4,11 +4,12 @@ from visualization import plot_distance_distribution, plot_workout, plot_LRM, ca
 from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks
 from analysis import check_activity_days, classify_user, distance_days_correlation, linear_regression, get_unique_users, unique_users_totaldistance
 from analysis import classify_user, linear_regression, analyze_sleep_vs_activity, analyze_sleep_vs_sedentary, calculate_time_block_averages, get_activity_by_time_blocks, get_heart_rate_and_intensity
-from database import connect_db, verify_total_steps, compute_sleep_duration
+from database import connect_db, compute_sleep_duration, verify_total_steps, discover_weather_impact
 
 FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
 DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
 DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
+CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
 CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
 
 def main():
@@ -63,6 +64,7 @@ def main():
         plot_activity_by_time_blocks(avg_steps, avg_calories, avg_sleep, labels)
 
         get_heart_rate_and_intensity(connection, user_id='1503960366')
+        discover_weather_impact(connection, CHICAGO_WEATHER)
         discover_weather_impact(connection, CHICAGO_WEATHER)
 
         connection.close()
