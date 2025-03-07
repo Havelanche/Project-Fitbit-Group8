@@ -22,9 +22,3 @@ def analyze_correlation(unique_user_distance, user_activity_days):
     plt.show()
 
     return merged_df
-
-# ---- Main Execution ----
-
-user_activity_days, top_5_users = check_activity_days(cleaned_data)
-merge_df_distance_days = distance_days_correlation(unique_user_distance, user_activity_days)
-# analyze_correlation(unique_user_distance, user_activity_days)
