@@ -1,9 +1,10 @@
 import os
 from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
 from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks
+from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks
 from analysis import check_activity_days, classify_user, distance_days_correlation, linear_regression, get_unique_users, unique_users_totaldistance
 from analysis import classify_user, linear_regression, analyze_sleep_vs_activity, analyze_sleep_vs_sedentary, calculate_time_block_averages, get_activity_by_time_blocks, get_heart_rate_and_intensity
-from database import connect_db, compute_sleep_duration, verify_total_steps, discover_weather_impact
+from database import connect_db, verify_total_steps, compute_sleep_duration
 
 FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
 DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
