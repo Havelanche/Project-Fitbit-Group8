@@ -183,7 +183,6 @@ def plot_statistical_summary(df_summary, group_by='Id'):
     plt.tight_layout()
     plt.show()
 
-
 def calories_vs_heart_rate(connection):
     try:
         print("Running calories_vs_heart_rate...")
@@ -222,3 +221,18 @@ def calories_vs_heart_rate(connection):
     except Exception as e:
         print(f"Error in calories_vs_heart_rate: {e}")
         traceback.print_exc()
+        
+def plot_weekend_vs_weekday(df):
+    try:
+        plt.figure(figsize=(8, 5))
+        sns.barplot(x='Weekend', y='TotalSteps_mean', data=df)
+        plt.title('Average Steps: Weekends vs Weekdays')
+        plt.show()
+
+        plt.figure(figsize=(8, 5))
+        sns.barplot(x='Weekend', y='SleepMinutes_mean', data=df)
+        plt.title('Average Sleep Minutes: Weekends vs Weekdays')
+        plt.show()
+    
+    except Exception as e:
+        print(f"Error in plot_weekend_vs_weekday: {e}")
