@@ -40,10 +40,9 @@ from database import (
     discover_weather_impact
 )
 
-FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
-DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
-DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
-CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
+DATA_FILE = "daily_activity.csv"
+DB_NAME = "fitbit_database.db"
+# CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
 # CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
 
 def main():
