@@ -1,65 +1,92 @@
-import traceback
+import os
+
+import pandas as pd
 from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
 from visualization import (
-    plot_distance_distribution, plot_weekend_vs_weekday, plot_workout, plot_LRM, calories_burned_per_day,
-    plot_activity_by_time_blocks, plot_statistical_summary,
-    plot_grouped_data, calories_vs_heart_rate
+    plot_calories_vs_heart_rate, 
+    plot_distance_distribution, 
+    plot_grouped_data, 
+    plot_statistical_summary, 
+    plot_weekend_vs_weekday, 
+    plot_workout, 
+    plot_LRM, 
+    calories_burned_per_day, 
+    plot_activity_by_time_blocks
 )
+
 from analysis import (
-    activity_vs_sleep_insights, aggregate_data, check_activity_days, classify_user, distance_days_correlation, fill_missing_values, linear_regression, analyze_sleep_vs_activity, analyze_sleep_vs_sedentary,
-    calculate_time_block_averages, get_activity_by_time_blocks, get_heart_rate_and_intensity,
-    merge_and_group_data, statistical_summary, unique_users_totaldistance, get_unique_users
+    activity_vs_sleep_insights, 
+    aggregate_data,
+    analyze_calories_vs_heart_rate, 
+    analyze_weight_log, 
+    check_activity_days, 
+    classify_user, 
+    distance_days_correlation, 
+    linear_regression, 
+    get_unique_users, 
+    merge_and_analyze_data, 
+    unique_users_totaldistance, 
+    analyze_sleep_vs_activity, 
+    analyze_sleep_vs_sedentary, 
+    calculate_time_block_averages, 
+    get_activity_by_time_blocks, 
+    get_heart_rate_and_intensity
 )
-from database import SQL_acquisition, connect_db, verify_total_steps, compute_sleep_duration
 
-DATA_FILE =  "dailyactivity.csv"
-DB_NAME = "fitbit_database.db"
+from database import (
+    connect_db, 
+    compute_sleep_duration, 
+    verify_total_steps, 
+    discover_weather_impact
+)
 
-def proccess_data():
+FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
+DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
+DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
+CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
+# CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
+
+def main():
     
-    try:
-        # # Load and clean data
-        original_data = load_and_preview_data(DATA_FILE) 
-        cleaned_data = clean_and_transform_data(original_data)
-        # summarize_data(cleaned_data)
+    # Load and clean data
+    original_data = load_and_preview_data(DATA_FILE) 
+    cleaned_data = clean_and_transform_data(original_data)
+    # summarize_data(cleaned_data)
 
-        # follow-up parameter insert for function update
-        unique_users = get_unique_users(cleaned_data)
-        unique_user_distance = unique_users_totaldistance(cleaned_data)
-        
-        # Visualization
-        plot_distance_distribution(unique_user_distance)
-        plot_workout(cleaned_data)
-        
-        # Creative Analysis
-        user_activity_days, top_5_users = check_activity_days(cleaned_data)
-        merge_df_distance_days = distance_days_correlation(unique_user_distance, user_activity_days)
-
-
-        # Linear regression model
-        model = linear_regression(cleaned_data)
-        print(model.summary())
-
-        # Calories burned per day (example user)
-        user_id_test = cleaned_data['Id'].iloc[0]  
-        calories_burned_per_day(cleaned_data, user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")
-
-        # Regression plot for a user
-        plot_LRM(cleaned_data, user_id=user_id_test)
-
-        # Classify users based on activity
-        user_classes = classify_user(cleaned_data)
-        print(user_classes)
-        return cleaned_data
-        
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        traceback.print_exc() 
+    # follow-up parameter insert for function update
+    # unique_users = get_unique_users(cleaned_data)
+    # unique_user_distance = unique_users_totaldistance(cleaned_data)
     
- 
-def analyzing_dataframe(connection, cleaned_data):
-    try:
-         # verify_total_steps(cleaned_data, connection)
+    # # Visualization
+    # plot_distance_distribution(unique_user_distance)
+    # plot_workout(cleaned_data)
+    
+    # # Creative Analysis
+    # user_activity_days, top_5_users = check_activity_days(cleaned_data)
+    # merge_df_distance_days = distance_days_correlation(unique_user_distance, user_activity_days)
+
+
+    # # Linear regression model
+    # model = linear_regression(cleaned_data)
+    # print(model.summary())
+
+    # # Calories burned per day (example user)
+    # user_id_test = cleaned_data['Id'].iloc[0]  
+    # calories_burned_per_day(cleaned_data, user_id=user_id_test, start_date="2016-03-01", end_date="2016-03-30")
+
+    # # Regression plot for a user
+    # plot_LRM(cleaned_data, user_id=user_id_test)
+
+    # # Classify users based on activity
+    # user_classes = classify_user(cleaned_data)
+    # print(user_classes)
+
+    # Database verification
+    connection = connect_db(DB_NAME)
+    
+    if connection:
+
+        # verify_total_steps(cleaned_data, connection)
         # df_sleep_duration = compute_sleep_duration(connection)
         # print(df_sleep_duration)
 
@@ -104,37 +131,21 @@ def analyzing_dataframe(connection, cleaned_data):
 
         # 3. Activity vs Sleep insights (Weekends vs Weekdays)
         print("Analyzing activity vs sleep...")
-        weekend_data = activity_vs_sleep_insights(df_aggregated)
+        activity_vs_sleep_insights(df_aggregated)
 
         # 4. Weight log analysis
         print("Analyzing weight log...")
-        weight_data = analyze_weight_log(connection)
+        analyze_weight_log(connection)
 
         # 5. Visualizations
         print("Generating visualizations...")
         plot_grouped_data(df_aggregated)
         plot_statistical_summary(user_summaries)
-        plot_weekend_vs_weekday(weekend_data)
+        plot_weekend_vs_weekday(df_aggregated)
         df, model = analyze_calories_vs_heart_rate(connection)
         plot_calories_vs_heart_rate(df)
 
         connection.close()
-    except Exception as e:
-        print(f"An error occurred while analyzing the dataframe: {e}")
-        traceback.print_exc()  
-        connection.close()
-           
-def main():
-    try:
-        cleaned_data = proccess_data()
-        connection = connect_db(DB_NAME)
-        if connection: 
-            analyzing_dataframe(connection, cleaned_data)
-            connection.close()  # Close the database connection after analyzing.
-    except Exception as e:
-        print(f"An error occurred in the main: {e}")
-        traceback.print_exc()
-        connection.close()  # Close the database connection if an error occurs at any point.
-        
+
 if __name__ == '__main__':
     main()
