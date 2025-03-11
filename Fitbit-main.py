@@ -59,48 +59,66 @@ def proccess_data():
  
 def analyzing_dataframe(connection, cleaned_data):
     try:
-        verify_total_steps(cleaned_data, connection)
-        df_sleep_duration = compute_sleep_duration(connection)
-        print(df_sleep_duration)
+         # verify_total_steps(cleaned_data, connection)
+        # df_sleep_duration = compute_sleep_duration(connection)
+        # print(df_sleep_duration)
 
-        analyze_sleep_vs_activity(connection)
-        analyze_sleep_vs_sedentary(connection)
+        # analyze_sleep_vs_activity(connection)
+        # analyze_sleep_vs_sedentary(connection)
 
-        hourly_steps, hourly_calories, minute_sleep = get_activity_by_time_blocks(connection)
-        avg_steps, avg_calories, avg_sleep, labels = calculate_time_block_averages(hourly_steps, hourly_calories, minute_sleep)
-        plot_activity_by_time_blocks(avg_steps, avg_calories, avg_sleep, labels)
+        # hourly_steps, hourly_calories, minute_sleep = get_activity_by_time_blocks(connection)
+        # avg_steps, avg_calories, avg_sleep, labels = calculate_time_block_averages(hourly_steps, hourly_calories, minute_sleep)
+        # plot_activity_by_time_blocks(avg_steps, avg_calories, avg_sleep, labels)
 
-        get_heart_rate_and_intensity(connection, user_id='1503960366')
+        # get_heart_rate_and_intensity(connection, user_id='1503960366')
+        # discover_weather_impact(connection, CHICAGO_WEATHER)
+        # discover_weather_impact(connection, CHICAGO_WEATHER) it is twice
+        # tables_query = "SELECT name FROM sqlite_master WHERE type='table';"
+        # tables = pd.read_sql_query(tables_query, connection)
+        # print("Tables in the database:")
+        # print(tables)
+        
+        # minute_sleep_preview = pd.read_sql_query("PRAGMA table_info(minute_sleep);", connection)
+        # print("Columns in minute_sleep table:")
+        # print(minute_sleep_preview)
+        
+        # minute_sleep_data = pd.read_sql_query("SELECT * FROM minute_sleep LIMIT 10;", connection)
+        # print("\nSample data from minute_sleep:")
+        # print(minute_sleep_data)
+        
+        # weight_log_preview = pd.read_sql_query("PRAGMA table_info(weight_log);", connection)
+        # print("Columns in weight_log table:")
+        # print(weight_log_preview)
 
-        # Load raw data for ActivityDate reference
-        query = "SELECT * FROM daily_activity"
-        raw_data = SQL_acquisition(connection, query)
-        print("merging...")
-        df_grouped = merge_and_group_data(connection)
+        # # Preview the first 10 rows of weight_log
+        # weight_log_data = pd.read_sql_query("SELECT * FROM weight_log LIMIT 10;", connection)
+        # print("\nSample data from weight_log:")
+        # print(weight_log_data)
         
-        print("aggregate...")
-        df_aggregated = aggregate_data(df_grouped, raw_data)
+            # 2. Aggregate data
+        print("Merging and analyzing data...")
+        merged_df, user_summaries = merge_and_analyze_data(connection)
         
-        print("filling the missing values...")
-        print("Column names new:", df_aggregated.columns.tolist())
-        df_aggregated = fill_missing_values(df_aggregated)
-        
-        print("Generating statistical summary...")
-        df_summary = statistical_summary(df_aggregated)   
-        
-        print("Generating weekend data...")
-        weekend_data = activity_vs_sleep_insights(df_aggregated)      
-         
-        plot_grouped_data(df_grouped)
-        plot_statistical_summary(df_summary)
-        
-        print("weekend data")
+        print("Aggregating data...")
+        df_aggregated = aggregate_data(merged_df)
+
+        # 3. Activity vs Sleep insights (Weekends vs Weekdays)
+        print("Analyzing activity vs sleep...")
+        weekend_data = activity_vs_sleep_insights(df_aggregated)
+
+        # 4. Weight log analysis
+        print("Analyzing weight log...")
+        weight_data = analyze_weight_log(connection)
+
+        # 5. Visualizations
+        print("Generating visualizations...")
+        plot_grouped_data(df_aggregated)
+        plot_statistical_summary(user_summaries)
         plot_weekend_vs_weekday(weekend_data)
-        
-        print("calories vs heart rate...")
-        calories_vs_heart_rate(connection)
-        # calories_vs_heart_rate(df_grouped)
-        
+        df, model = analyze_calories_vs_heart_rate(connection)
+        plot_calories_vs_heart_rate(df)
+
+        connection.close()
     except Exception as e:
         print(f"An error occurred while analyzing the dataframe: {e}")
         traceback.print_exc()  
