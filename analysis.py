@@ -319,6 +319,7 @@ def aggregate_data(df, raw_data=None, group_by='Id'):
             'WeightKg_mean': 'WeightKg',
             'BMI_mean': 'BMI'
         }
+        print("Columns after merge:", aggregated.columns)
 
         for new_col, old_col in col_mapping.items():
             if new_col in aggregated.columns:
@@ -389,6 +390,13 @@ def merge_and_analyze_data(connection):
 
         print("\nUser-Level Activity and Health Summaries (new merge):")
         print(user_summaries)
+        plt.figure(figsize=(12, 10))
+        correlation_matrix = user_summaries.select_dtypes(include=[np.number]).corr()
+        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0, 
+                    square=True, linewidths=0.5, cbar_kws={"shrink": .8})
+        plt.title('Correlation between User Metrics')
+        plt.tight_layout()
+        plt.show()
 
         return merged_df, user_summaries
 
@@ -397,106 +405,26 @@ def merge_and_analyze_data(connection):
         traceback.print_exc()
         return None, None
 
-# def merge_and_analyze_data(connection):
-#     try:
-#         # Fetch data from the database
-#         daily_activity = pd.read_sql("SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes FROM daily_activity", connection)
-#         minute_sleep = pd.read_sql("SELECT Id, date AS ActivityDate, value AS SleepMinutes FROM minute_sleep", connection)
-#         weight_log = pd.read_sql("SELECT Id, Date AS ActivityDate, WeightKg, BMI FROM weight_log", connection)
-        
-#         # Convert ActivityDate columns to datetime
-#         for data in [daily_activity, minute_sleep, weight_log]:
-#             data['ActivityDate'] = pd.to_datetime(data['ActivityDate'], format='%m/%d/%Y', errors='coerce')
-        
-#         # Merge the dataframes
-#         merged_df = pd.merge(daily_activity, minute_sleep, on=['Id', 'ActivityDate'], how='left')
-#         merged_df = pd.merge(merged_df, weight_log, on=['Id', 'ActivityDate'], how='left')
-
-#         print("Columns after merge:", merged_df.columns)
-
-#         # Ensure no NaN medians are used
-#         weight_median = merged_df['WeightKg'].median(skipna=True)
-#         bmi_median = merged_df['BMI'].median(skipna=True)
-
-#         # Fallback to a default value if median is NaN
-#         weight_median = weight_median if pd.notna(weight_median) else 0
-#         bmi_median = bmi_median if pd.notna(bmi_median) else 0
-
-#         # Handle missing values
-#         merged_df['SleepMinutes'] = merged_df['SleepMinutes'].fillna(0)
-#         merged_df['WeightKg'] = merged_df['WeightKg'].fillna(weight_median)
-#         merged_df['BMI'] = merged_df['BMI'].fillna(bmi_median)
-
-#         # Compute user-level summaries
-#         user_summaries = merged_df.groupby('Id').agg({
-#             'TotalSteps': 'mean',
-#             'Calories': 'mean',
-#             'SedentaryMinutes': 'mean',
-#             'SleepMinutes': 'mean',
-#             'WeightKg': 'mean',
-#             'BMI': 'mean'
-#         }).reset_index()
-
-#         # Print user-level activity and health summaries
-#         print("\nUser-Level Activity and Health Summaries:")
-#         print(user_summaries)
-
-#         # Correlation heatmap
-#         plt.figure(figsize=(12, 10))
-#         correlation_matrix = user_summaries.select_dtypes(include=[np.number]).corr()
-#         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0, 
-#                     square=True, linewidths=0.5, cbar_kws={"shrink": .8})
-#         plt.title('Correlation between User Metrics')
-#         plt.tight_layout()
-#         plt.show()
-
-#         # Weekend vs weekday analysis for activity and sleep
-#         activity_metrics = ['TotalSteps', 'Calories']
-#         weekend_stats = {}
-#         weekday_stats = {}
-
-#         for metric in activity_metrics:
-#             weekend_data = merged_df[merged_df['ActivityDate'].dt.weekday >= 5][metric].dropna()
-#             weekday_data = merged_df[merged_df['ActivityDate'].dt.weekday < 5][metric].dropna()
-
-#             weekend_stats[metric] = weekend_data.mean()
-#             weekday_stats[metric] = weekday_data.mean()
-
-#             # Perform t-test for comparison
-#             if len(weekend_data) > 0 and len(weekday_data) > 0:
-#                 t_stat, p_val = stats.ttest_ind(weekday_data, weekend_data)
-#                 print(f"\n{metric}:")
-#                 print(f"  Weekday Mean: {weekday_stats[metric]:.2f}")
-#                 print(f"  Weekend Mean: {weekend_stats[metric]:.2f}")
-#                 print(f"  Difference: {weekend_stats[metric] - weekday_stats[metric]:.2f}")
-#                 print(f"  t-statistic = {t_stat:.4f}")
-#                 print(f"  p-value = {p_val:.4f}")
-#                 print(f"  Significant difference: {p_val < 0.05}")
-#             else:
-#                 print(f"\n{metric}: Insufficient data for comparison")
-
-#         return merged_df, user_summaries
-#     except Exception as e:
-#         print(f"Error in merge_and_analyze_data: {e}")
-#         traceback.print_exc()
-#         return None, None
-
 #Task 11: weekdays
 def activity_vs_sleep_insights(df):
     try:
-        # Add columns for Day of Week and Weekend
-        df['ActivityDate'] = pd.to_datetime(df['ActivityDate'], errors='coerce')
-        df['DayOfWeek'] = df['ActivityDate'].dt.day_name()
+        # Ensure DayOfWeek column exists
+        if 'DayOfWeek' not in df.columns:
+            print("Error: 'DayOfWeek' column not found in merged data.")
+            print("Available columns:", df.columns)
+            return None
+
+        # Define weekends
         df['Weekend'] = df['DayOfWeek'].isin(['Saturday', 'Sunday'])
 
-        # Aggregation by Weekend
+        # Aggregate metrics by Weekend
         weekend_comparison = df.groupby('Weekend').agg({
-            'TotalSteps_mean': 'mean',
-            'SleepMinutes_mean': 'mean',
-            'Calories_mean': 'mean'
+            'TotalSteps': 'mean',
+            'SleepMinutes': 'mean',
+            'Calories': 'mean'
         }).reset_index()
 
-        print("Weekend vs weekday activity and sleep:")
+        print("\nWeekend vs Weekday activity and sleep:")
         print(weekend_comparison)
 
         return weekend_comparison
@@ -505,7 +433,6 @@ def activity_vs_sleep_insights(df):
         print(f"Error in activity_vs_sleep_insights: {e}")
         traceback.print_exc()
         return None
-    
 
 # Task 12: weightlog
 def analyze_weight_log(connection):
@@ -519,12 +446,12 @@ def analyze_weight_log(connection):
 
 
     # Visualize weight distribution by user
-    # plt.figure(figsize=(10, 6))
-    # sns.boxplot(x='Id', y='WeightKg', data=weight_df)
-    # plt.title('Weight Distribution by User')
-    # plt.xticks(rotation=45)
-    # plt.tight_layout()
-    # plt.show()
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='Id', y='WeightKg', data=weight_df)
+    plt.title('Weight Distribution by User')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
 
     # Show descriptive statistics for weight log
     print("\nWeight Log Descriptive Statistics:")
@@ -533,32 +460,37 @@ def analyze_weight_log(connection):
     return weight_df
 
 def analyze_calories_vs_heart_rate(connection):
-    """
-    Fetches data from the database and performs linear regression on Calories vs. Heart Rate.
-    Returns the cleaned DataFrame and model summary.
-    """
     try:
-        print("Running analyze_calories_vs_heart_rate...")
-
         query = '''
-        SELECT hr.Id, hr.Time, hr.Value AS HeartRate, hc.Calories
-        FROM heart_rate hr
-        JOIN hourly_calories hc ON hr.Id = hc.Id 
-        AND strftime('%H:%M', hr.Time) = strftime('%H:%M', hc.ActivityHour)
+            SELECT hr.Id, hr.Time, hr.Value AS HeartRate, hc.Calories
+            FROM heart_rate hr
+            JOIN hourly_calories hc ON hr.Id = hc.Id
+            AND strftime('%Y-%m-%d %H', hr.Time) = strftime('%Y-%m-%d %H', hc.ActivityHour)
         '''
         df = SQL_acquisition(connection, query)
+
+        print("Query executed. Rows returned:", len(df))
+        print("Sample rows from query result:")
+        print(df.head())
 
         if df.empty:
             print("No data available for Calories vs. Heart Rate.")
             return None, None
 
-        # Data cleaning
+        # Ensure required columns exist
+        if 'HeartRate' not in df.columns or 'Calories' not in df.columns:
+            print("Missing columns in the query result.")
+            print("Available columns:", df.columns)
+            return None, None
+
+        # Convert Time to datetime and clean data
         df['Time'] = pd.to_datetime(df['Time'], errors='coerce')
         df.dropna(subset=['HeartRate', 'Calories'], inplace=True)
 
-        # Check for insufficient data
-        if df[['HeartRate', 'Calories']].isnull().all().any():
-            print("Insufficient data for modeling.")
+        print(f"Rows after cleaning: {len(df)}")
+
+        if df.empty:
+            print("No valid rows after cleaning.")
             return None, None
 
         # Regression model
