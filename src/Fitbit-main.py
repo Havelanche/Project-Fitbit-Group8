@@ -1,16 +1,16 @@
 import os
+
+import pandas as pd
 from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
-from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks
-from visualization import plot_distance_distribution, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks
-from analysis import check_activity_days, classify_user, distance_days_correlation, linear_regression, get_unique_users, unique_users_totaldistance
-from analysis import classify_user, linear_regression, analyze_sleep_vs_activity, analyze_sleep_vs_sedentary, calculate_time_block_averages, get_activity_by_time_blocks, get_heart_rate_and_intensity
+from visualization import plot_distance_distribution, plot_grouped_data, plot_statistical_summary, plot_weekend_vs_weekday, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks
+from analysis import activity_vs_sleep_insights, aggregate_data, analyze_weight_log, check_activity_days, classify_user, distance_days_correlation, linear_regression, get_unique_users, merge_and_analyze_data, unique_users_totaldistance, analyze_sleep_vs_activity, analyze_sleep_vs_sedentary, calculate_time_block_averages, get_activity_by_time_blocks, get_heart_rate_and_intensity
 from database import connect_db, compute_sleep_duration, verify_total_steps, discover_weather_impact
 
 FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
 DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
 DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
 CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
-CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
+# CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
 
 def main():
     
@@ -65,7 +65,30 @@ def main():
 
         get_heart_rate_and_intensity(connection, user_id='1503960366')
         discover_weather_impact(connection, CHICAGO_WEATHER)
-        discover_weather_impact(connection, CHICAGO_WEATHER)
+        # discover_weather_impact(connection, CHICAGO_WEATHER) it is twice
+        
+            # 2. Aggregate data
+        # print("Merging and analyzing data...")
+        merged_df, user_summaries = merge_and_analyze_data(connection)
+        
+        # print("Aggregating data...")
+        df_aggregated = aggregate_data(merged_df)
+
+        # 3. Activity vs Sleep insights (Weekends vs Weekdays)
+        # print("Analyzing activity vs sleep...")
+        activity_vs_sleep_insights(df_aggregated)
+
+        # 4. Weight log analysis
+        print("Analyzing weight log...")
+        analyze_weight_log(connection)
+
+        # 5. Visualizations
+        # print("Generating visualizations...")
+        plot_grouped_data(df_aggregated)
+        plot_statistical_summary(user_summaries)
+        # print("weekend_vs_weekday...")
+        plot_weekend_vs_weekday(df_aggregated)
+
 
         connection.close()
 

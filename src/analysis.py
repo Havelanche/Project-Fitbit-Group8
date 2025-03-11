@@ -1,6 +1,11 @@
+import traceback
+import numpy as np
+from scipy import stats
 from visualization import plot_sleep_vs_activity, plot_sleep_vs_sedentary, plot_residuals,plot_heart_rate_and_intensity_by_id
 import statsmodels.formula.api as smf
 from scipy.stats import shapiro
+import statsmodels.api as sm
+import seaborn as sns
 import pandas as pd
 import matplotlib.cm as cm
 import matplotlib.pyplot as plt
@@ -95,7 +100,6 @@ def distance_days_correlation(unique_user_distance, user_activity_days):
 
     return merged_df
 
-
 def SQL_acquisition(connection, query):
     try:
         cursor = connection.cursor()
@@ -107,7 +111,6 @@ def SQL_acquisition(connection, query):
         print(f"An error occurred while executing the SQL query: {e}")
         return pd.DataFrame()
     
-
 def analyze_sleep_vs_activity(connection):
     query_sleep = """
         SELECT Id, date AS ActivityDate, SUM(value) AS SleepDuration
@@ -204,7 +207,6 @@ def calculate_time_block_averages(hourly_steps_df, hourly_calories_df, minute_sl
     labels = [f"{start}-{end}" for start, end in time_blocks]
     return avg_steps, avg_calories, avg_sleep, labels
 
-
 def get_activity_by_time_blocks(connection):
     hourly_steps_query = "SELECT * FROM hourly_steps;"
     hourly_calories_query = "SELECT * FROM hourly_calories;"
@@ -236,7 +238,6 @@ def get_heart_rate_and_intensity(connection, user_id):
     hourly_intensity_df['ActivityHour'] = pd.to_datetime(hourly_intensity_df['ActivityHour'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
 
     return heart_rate_df, hourly_intensity_df
-
 
 # TASK 7: Weather Impact
 def get_weather_and_daily_activity(connection, df_weather):
@@ -282,4 +283,158 @@ def get_weather_and_daily_activity(connection, df_weather):
     df_final_steps = df_steps_merged.groupby('temp_bin', observed=False)[['TotalSteps']].mean().reset_index()
 
     return df_final_activity, df_final_distance, df_final_steps
-    # Load weather data from CSV
+
+#Task 8: aggregate data.
+def aggregate_data(df, raw_data=None, group_by='Id'):
+    try:
+        print("Running aggregate_data function")
+
+        # Convert to datetime and extract necessary columns
+        df['date'] = pd.to_datetime(df['ActivityDate'], errors='coerce')
+        df['DayOfWeek'] = df['date'].dt.day_name()
+        df['Hour'] = df['date'].dt.hour
+
+        # Define grouping columns
+        group_columns = [group_by, 'DayOfWeek', 'Hour']
+
+        # Aggregation on multiple columns with mean, median, and std
+        aggregated = df.groupby(group_columns).agg({
+            'TotalSteps': ['mean', 'median', 'std'],
+            'Calories': ['mean', 'median', 'std'],
+            'SedentaryMinutes': ['mean', 'median', 'std'],
+            'SleepMinutes': ['mean', 'median', 'std'],
+            'WeightKg': ['mean', 'median', 'std'],
+            'BMI': ['mean', 'median', 'std']
+        }).reset_index()
+
+        # Flatten multi-index columns
+        aggregated.columns = ['_'.join(map(str, col)).strip('_') if isinstance(col, tuple) else col for col in aggregated.columns]
+
+        # Map old column names to new ones
+        col_mapping = {
+            'TotalSteps_mean': 'TotalSteps',
+            'Calories_mean': 'Calories',
+            'SedentaryMinutes_mean': 'SedentaryMinutes',
+            'SleepMinutes_mean': 'SleepMinutes',
+            'WeightKg_mean': 'WeightKg',
+            'BMI_mean': 'BMI'
+        }
+        print("Columns after merge:", aggregated.columns)
+
+        for new_col, old_col in col_mapping.items():
+            if new_col in aggregated.columns:
+                aggregated[old_col] = aggregated[new_col]
+
+        return aggregated
+
+    except Exception as e:
+        print(f"Error in aggregate_data: {e}")
+        traceback.print_exc()
+        return None
+
+# Task 9: Analyzing and merge data
+def merge_and_analyze_data(connection):
+    try:
+        daily_activity = pd.read_sql("SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes FROM daily_activity", connection)
+        minute_sleep = pd.read_sql("SELECT Id, date, value AS SleepMinutes FROM minute_sleep", connection)
+        weight_log = pd.read_sql("SELECT Id, Date, WeightKg, BMI FROM weight_log", connection)
+
+        # Convert dates to datetime (strip time for weight_log and minute_sleep)
+        daily_activity['ActivityDate'] = pd.to_datetime(daily_activity['ActivityDate'], format='%m/%d/%Y', errors='coerce')
+        minute_sleep['ActivityDate'] = pd.to_datetime(minute_sleep['date'].str.split().str[0], format='%m/%d/%Y', errors='coerce')
+        weight_log['ActivityDate'] = pd.to_datetime(weight_log['Date'].str.split().str[0], format='%m/%d/%Y', errors='coerce')
+
+        # Aggregate sleep minutes by Id and ActivityDate
+        minute_sleep = minute_sleep.groupby(['Id', 'ActivityDate']).agg({'SleepMinutes': 'sum'}).reset_index()
+
+        # Merge dataframes
+        merged_df = pd.merge(daily_activity, minute_sleep, on=['Id', 'ActivityDate'], how='left')
+        merged_df = pd.merge(merged_df, weight_log[['Id', 'ActivityDate', 'WeightKg', 'BMI']], on=['Id', 'ActivityDate'], how='left')
+
+        print("Columns after merge:", merged_df.columns)
+
+        # Handle missing values
+        merged_df['SleepMinutes'] = merged_df['SleepMinutes'].fillna(0)
+        merged_df['WeightKg'] = merged_df['WeightKg'].fillna(merged_df['WeightKg'].median(skipna=True))
+        merged_df['BMI'] = merged_df['BMI'].fillna(merged_df['BMI'].median(skipna=True))
+
+        # User-level summaries
+        user_summaries = merged_df.groupby('Id').agg({
+            'TotalSteps': 'mean',
+            'Calories': 'mean',
+            'SedentaryMinutes': 'mean',
+            'SleepMinutes': 'mean',
+            'WeightKg': 'mean',
+            'BMI': 'mean'
+        }).reset_index()
+
+        print("\nUser-Level Activity and Health Summaries (new merge):")
+        print(user_summaries)
+        plt.figure(figsize=(12, 10))
+        correlation_matrix = user_summaries.select_dtypes(include=[np.number]).corr()
+        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0, 
+                    square=True, linewidths=0.5, cbar_kws={"shrink": .8})
+        plt.title('Correlation between User Metrics')
+        plt.tight_layout()
+        plt.show()
+
+        return merged_df, user_summaries
+
+    except Exception as e:
+        print(f"Error in merge_and_analyze_data: {e}")
+        traceback.print_exc()
+        return None, None
+
+#Task 10: weekdays
+def activity_vs_sleep_insights(df):
+    try:
+        # Ensure DayOfWeek column exists
+        if 'DayOfWeek' not in df.columns:
+            print("Error: 'DayOfWeek' column not found in merged data.")
+            print("Available columns:", df.columns)
+            return None
+
+        # Define weekends
+        df['Weekend'] = df['DayOfWeek'].isin(['Saturday', 'Sunday'])
+
+        # Aggregate metrics by Weekend
+        weekend_comparison = df.groupby('Weekend').agg({
+            'TotalSteps': 'mean',
+            'SleepMinutes': 'mean',
+            'Calories': 'mean'
+        }).reset_index()
+
+        print("\nWeekend vs Weekday activity and sleep:")
+        print(weekend_comparison)
+
+        return weekend_comparison
+
+    except Exception as e:
+        print(f"Error in activity_vs_sleep_insights: {e}")
+        traceback.print_exc()
+        return None
+
+# Task 11: weightlog
+def analyze_weight_log(connection):
+    """Analyze weight log table and handle missing values."""
+    query = "SELECT * FROM weight_log"
+    weight_df = pd.read_sql_query(query, connection)
+
+    # Handle missing values by filling with mean per Id
+    for col in ['WeightKg', 'Fat', 'BMI']:
+        weight_df[col] = weight_df.groupby('Id')[col].transform(lambda x: x.fillna(x.mean()))
+
+
+    # Visualize weight distribution by user
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(x='Id', y='WeightKg', data=weight_df)
+    plt.title('Weight Distribution by User')
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.show()
+
+    # Show descriptive statistics for weight log
+    print("\nWeight Log Descriptive Statistics:")
+    print(weight_df.groupby('Id')[['WeightKg', 'Fat', 'BMI']].describe())
+
+    return weight_df
