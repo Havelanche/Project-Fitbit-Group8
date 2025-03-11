@@ -3,7 +3,14 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import seaborn as sns
 import numpy as np
-    
+import pandas as pd
+import traceback 
+
+def ensure_columns(df, required_columns):
+    missing_columns = [col for col in required_columns if col not in df.columns]
+    if missing_columns:
+        print(f"Missing columns: {missing_columns}")
+    return df
 
 def plot_distance_distribution(df):
     if df.empty: 
@@ -213,3 +220,66 @@ def plot_weather_and_daily_activity(df_final_activity, df_final_distance, df_fin
     plt.xticks(rotation=45)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
     plt.show()
+    
+def plot_grouped_data(df_grouped, metric='TotalSteps', group_by='Id'):
+    plt.figure(figsize=(12, 6))
+    sns.barplot(x=group_by, y=metric, hue=group_by, data=df_grouped, palette='viridis', legend=False)
+    plt.xticks(rotation=45)
+    plt.title(f'Average {metric} by {group_by}')
+    plt.xlabel(group_by)
+    plt.ylabel(f'Average {metric}')
+    plt.tight_layout()
+    plt.show()
+
+def plot_statistical_summary(df_summary, group_by='Id'):
+    metrics = ['TotalSteps', 'Calories', 'SedentaryMinutes', 'SleepMinutes', 'WeightKg', 'BMI']
+
+    valid_metrics = [metric for metric in metrics if metric in df_summary.columns]
+
+    if not valid_metrics:
+        print("No valid metrics to plot. Skipping visualization.")
+        return
+
+    plt.figure(figsize=(10, 5))
+    for metric in valid_metrics:
+        sns.lineplot(x=df_summary[group_by], y=df_summary[metric], label=metric)
+
+    plt.xticks(rotation=45)
+    plt.title(f'Statistics by {group_by}')
+    plt.xlabel(group_by)
+    plt.ylabel('Values')
+
+    if valid_metrics:
+        plt.legend(title='Metrics')
+
+    plt.tight_layout()
+    plt.show()
+    
+def plot_weekend_vs_weekday(df):
+    try:
+        if 'DayOfWeek' not in df.columns:
+            print("Error: 'DayOfWeek' column not found in DataFrame.")
+            print("Available columns:", df.columns)
+            return
+        
+        df['Weekend'] = df['DayOfWeek'].isin(['Saturday', 'Sunday'])
+
+        weekend_data = df.groupby('Weekend').agg({
+            'TotalSteps': 'mean',
+            'SleepMinutes': 'mean'
+        }).reset_index()
+
+        plt.figure(figsize=(8, 5))
+        sns.barplot(x='Weekend', y='TotalSteps', data=weekend_data, color='skyblue')
+        plt.title('Average Steps: Weekends vs Weekdays')
+        plt.show()
+
+        # Plot Sleep Minutes
+        plt.figure(figsize=(8, 5))
+        sns.barplot(x='Weekend', y='SleepMinutes', data=weekend_data, color='green')
+        plt.title('Average Sleep Minutes: Weekends vs Weekdays')
+        plt.show()
+
+    except Exception as e:
+        print(f"Error in plot_weekend_vs_weekday: {e}")
+        traceback.print_exc()
