@@ -21,7 +21,9 @@ def plot_distance_distribution(df):
     plt.xlabel('Total Distance (km)')
     plt.ylabel('Number of Users')
     plt.title('Distribution of Total Distances Covered by 35 Users')
+    plt.subplots_adjust(bottom=0.25)
     plt.grid(axis='y', linestyle='--', alpha=0.7)
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
 
 def calories_burned_per_day(df, user_id, start_date=None, end_date=None):
@@ -40,6 +42,7 @@ def calories_burned_per_day(df, user_id, start_date=None, end_date=None):
     plt.title(f'Total calories burned by User {user_id}')
     plt.xticks(rotation=45) 
     plt.grid()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
     
 def plot_workout(df):
@@ -54,6 +57,8 @@ def plot_workout(df):
     plt.ylabel('Workout Count by Day')
     plt.title('Weekly Workout Frequency')
     plt.xticks(rotation=45) 
+    plt.grid()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
 
 def plot_LRM(df, user_id):
@@ -68,28 +73,34 @@ def plot_LRM(df, user_id):
     plt.xlabel('Total Steps')
     plt.ylabel('Calories Burned')
     plt.title(f'Calories vs. Steps for User {user_id}')
+    plt.grid()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
        
 def plot_sleep_vs_activity(df_merged):
     if df_merged.empty:
         print('No data available for sleep vs. activity graph.')
         return
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(12, 6))
     sns.regplot(x=df_merged["TotalActiveMinutes"], y= df_merged["SleepDuration"], scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
     plt.xlabel("Total Active Minutes")
     plt.ylabel("Sleep Duration (hours)")
     plt.title("Regression: Sleep Duration vs. Active Minutes")
+    plt.grid()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
     
 def plot_sleep_vs_sedentary(df_merged):
     if df_merged.empty:
         print('No data available for sleep vs. sedentary graph.')
         return
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(12, 6))
     sns.regplot(x=df_merged["SedentaryMinutes"], y=df_merged["SleepDuration"], scatter_kws={'alpha':0.5}, line_kws={'color':'red'})
     plt.xlabel("Sedentary Minutes")
     plt.ylabel("Sleep Duration (hours)")
     plt.title("Regression: Sleep Duration vs. Sedentary Minutes")
+    plt.grid()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
         
 def plot_residuals(model):
@@ -98,15 +109,19 @@ def plot_residuals(model):
         print("No residual data available for plotting.")
         return
 
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(12, 6))
     sns.histplot(residuals, kde=True, bins=30)
     plt.xlabel("Residuals")
     plt.ylabel("Frequency")
     plt.title("Residual Distribution (Normality Check)")
+    plt.grid()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
 
     sm.qqplot(residuals, line="45", fit=True)
     plt.title("Q-Q Plot of Residuals (Normality Check)")
+    plt.grid()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
         
 #task 5
@@ -118,7 +133,7 @@ def plot_activity_by_time_blocks(avg_steps, avg_calories, avg_sleep, labels):
     x = np.arange(len(labels))
     bar_width = 0.4
 
-    fig, axs = plt.subplots(3, 1, figsize=(10, 12))
+    fig, axs = plt.subplots(1, 3, figsize=(12, 6))
 
     # Plot 1: Steps
     axs[0].bar(x, avg_steps, bar_width, color='r', label='Steps')
@@ -148,6 +163,7 @@ def plot_activity_by_time_blocks(avg_steps, avg_calories, avg_sleep, labels):
     axs[2].legend()
 
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
 
 #task 6    
@@ -165,6 +181,7 @@ def plot_heart_rate_and_intensity_by_id(heart_rate_df, hourly_intensity_df, user
 
     fig.suptitle(f'Heart Rate and Total Exercise Intensity for User {user_id}', fontsize=14)
     plt.tight_layout()
+    plt.subplots_adjust(bottom=0.25)
     plt.show()
 
 # Task 7

@@ -68,6 +68,7 @@ def main():
         discover_weather_impact(connection, CHICAGO_WEATHER)
 
         connection.close()
+        # throw exceotion to locate the error 
 
 if __name__ == '__main__':
     main()
