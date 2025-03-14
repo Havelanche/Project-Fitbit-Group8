@@ -438,3 +438,68 @@ def analyze_weight_log(connection):
     print(weight_df.groupby('Id')[['WeightKg', 'Fat', 'BMI']].describe())
 
     return weight_df
+
+# lala's leaderboard dataframe funtion
+def compute_user_metrics(connection):
+    # Get daily activity metrics
+    daily_query = """
+        SELECT 
+            Id,
+            SUM(TotalDistance) AS TotalDistance,
+            SUM(VeryActiveDistance) AS VeryActiveDistance,
+            SUM(VeryActiveMinutes) AS VeryActiveMinutes,
+            SUM(Calories) AS TotalCalories
+        FROM daily_activity
+        GROUP BY Id
+    """
+    df_daily = SQL_acquisition(connection, daily_query)
+    
+    # Get hourly intensity metrics
+    hourly_query = """
+        SELECT 
+            Id,
+            SUM(TotalIntensity) AS TotalIntensity
+        FROM hourly_intensity
+        GROUP BY Id
+    """
+    df_hourly = SQL_acquisition(connection, hourly_query)
+    
+    # Get sleep metrics (count of value=1)
+    sleep_query = """
+        SELECT 
+            Id,
+            COUNT(*) AS TotalRestfulSleep
+        FROM minute_sleep
+        WHERE value = 1
+        GROUP BY Id
+    """
+    df_sleep = SQL_acquisition(connection, sleep_query)
+    
+    # Check for empty results
+    if df_daily.empty and df_hourly.empty and df_sleep.empty:
+        print("No data found in any tables")
+        return pd.DataFrame()
+    
+    # Merge all dataframes
+    merged_df = df_daily.copy()
+    
+    # Convert IDs to string type for consistency
+    for df in [merged_df, df_hourly, df_sleep]:
+        if not df.empty:
+            df["Id"] = df["Id"].astype(str)
+    
+    # Perform merges
+    if not df_hourly.empty:
+        merged_df = pd.merge(merged_df, df_hourly, on="Id", how="left")
+    if not df_sleep.empty:
+        merged_df = pd.merge(merged_df, df_sleep, on="Id", how="left")
+    
+    # Fill missing values with 0
+    merged_df = merged_df.fillna(0)
+    
+    # Find user with maximum distance
+    if not merged_df.empty:
+        max_distance_user = merged_df.loc[merged_df['TotalDistance'].idxmax()]
+        print(f"User with longest total distance: {max_distance_user['Id']} ({max_distance_user['TotalDistance']} km)")
+    
+    return merged_df
