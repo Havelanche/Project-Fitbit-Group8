@@ -91,6 +91,7 @@ def main():
 
 
         connection.close()
+        # throw exceotion to locate the error 
 
 if __name__ == '__main__':
     main()

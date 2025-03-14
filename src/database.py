@@ -6,6 +6,12 @@ from visualization import plot_sleep_vs_activity, plot_sleep_vs_sedentary, plot_
 def connect_db(db_name): 
     return sql.connect(db_name)
     
+# lala's dashboard new helper funtion
+def get_unique_user_ids(connection):
+    query = "SELECT DISTINCT Id FROM daily_activity"
+    cursor = connection.cursor()
+    cursor.execute(query)
+    return sorted([str(row[0]) for row in cursor.fetchall()])
 
 def verify_total_steps(df, connection):
     df_database = SQL_acquisition(connection, f"SELECT Id, sum(StepTotal) AS total_steps FROM hourly_steps GROUP BY Id")
