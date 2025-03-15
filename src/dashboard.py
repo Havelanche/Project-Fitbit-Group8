@@ -5,7 +5,7 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 from database import connect_db, get_unique_user_ids
 from dashboard_visualization import plot_heart_rate, plot_activity_summary, plot_sleep_patterns
-from analysis import merge_and_analyze_data, compute_user_metrics
+from analysis import merge_and_analyze_data, compute_leader_metrics
 
 
 # --------------------------
@@ -26,8 +26,8 @@ try:
     conn = connect_db(DB_PATH)
     merged_df, user_summaries = merge_and_analyze_data(conn)
     
-    # lala's leaderboard data
-    leader_metrics_df = compute_user_metrics(conn)
+    # lala's leaderboard data (metrics and champions)
+    metrics_df, champions = compute_leader_metrics(conn)
 
     conn.close()
 except Exception as e:
@@ -109,61 +109,97 @@ def show_activity_overview(merged_df):
 # --------------------------
 # Leaderboard
 # --------------------------
-
-def leaderboard_page(leader_metrics_df):
+def leaderboard_page(metrics_df, champions):
     st.header("🏆 User Leaderboard")
     
-    if leader_metrics_df.empty:
+    # --------------------------
+    # Sidebar - Champion Selection
+    # --------------------------
+    st.sidebar.title("🌟 Champion Filters")
+    selected_champs = st.sidebar.multiselect(
+        "Select champions to highlight:",
+        options=["Most Steps", "Longest Distance", "Best Sleeper"],
+        default=["Most Steps"]
+    )
+    
+    # --------------------------
+    # Main Metrics Display
+    # --------------------------
+    if metrics_df.empty:
         st.warning("No metrics data available")
         return
     
-    # Create 3 columns for key metrics
-    col1, col2, col3 = st.columns(3)
+    # Create metric columns
+    cols = st.columns(5)
+    metric_config = {
+        'TotalSteps': {'title': 'Total Steps', 'format': '{:,.0f}'},
+        'TotalDistance': {'title': 'Total Distance', 'format': '{:.2f} km'},
+        'TotalCalories': {'title': 'Calories Burned', 'format': '{:,.0f}'},
+        'AverageIntensity': {'title': 'Avg Intensity', 'format': '{:.1f}'},
+        'TotalRestfulSleep': {'title': 'Restful Sleep', 'format': '{:,.0f} mins'}
+    }
     
-    with col1:
-        total_users = len(leader_metrics_df)
-        st.metric("Total Users", total_users)
+    for idx, (col, (metric, config)) in enumerate(zip(cols, metric_config.items())):
+        with col:
+            if metric in metrics_df.columns:
+                avg_value = metrics_df[metric].mean()
+                champ_key = f"{metric.split('_')[-1].lower()}_champion"
+                
+                if champ_key in champions and any(c.lower() in champ_key for c in selected_champs):
+                    champ = champions[champ_key]
+                    st.metric(
+                        label=config['title'],
+                        value=config['format'].format(champ['value']),
+                        delta=f"Champion: {champ['user_id']}"
+                    )
+                else:
+                    st.metric(
+                        label=config['title'],
+                        value=config['format'].format(avg_value),
+                        help="Average across all users"
+                    )
     
-    with col2:
-        max_distance = leader_metrics_df['TotalDistance'].max()
-        st.metric("Max Distance Record", f"{max_distance:.2f} km")
+    # --------------------------
+    # Top Performers Table
+    # --------------------------
+    st.subheader("🏅 Top 5 Performers")
+    if not metrics_df.empty:
+        display_df = metrics_df.sort_values('TotalDistance', ascending=False).head()
+        st.dataframe(
+            display_df,
+            column_config={
+                "Id": "User ID",
+                "TotalSteps": "Total Steps",
+                "TotalDistance": st.column_config.NumberColumn(
+                    "Distance (km)", 
+                    format="%.2f"
+                ),
+                "TotalRestfulSleep": "Restful Sleep (mins)"
+            },
+            hide_index=True
+        )
     
-    with col3:
-        max_calories = leader_metrics_df['TotalCalories'].max()
-        st.metric("Max Calories Burned", f"{max_calories:.0f} kcal")
-
-    # Show top 5 users in a table
-    st.subheader("Top Performers Ranking")
-    st.dataframe(
-        leader_metrics_df.sort_values('TotalDistance', ascending=False).head(),
-        column_config={
-            "Id": "User ID",
-            "TotalDistance": st.column_config.NumberColumn(
-                "Distance (km)", format="%.2f km"
-            ),
-            "TotalCalories": st.column_config.NumberColumn(
-                "Calories", format="%d kcal"
-            )
-        }
-    )
-
-    # Visualizations in tabs
+    # --------------------------
+    # Visualization Tabs
+    # --------------------------
     tab1, tab2, tab3 = st.tabs(["Distance Analysis", "Activity Metrics", "Sleep Patterns"])
     
     with tab1:
-        st.subheader("Total Distance Distribution")
-        st.bar_chart(leader_metrics_df.set_index('Id')['TotalDistance'])
+        if not metrics_df.empty:
+            st.subheader("Distance Distribution")
+            st.bar_chart(metrics_df.set_index('Id')['TotalDistance'])
     
     with tab2:
-        st.subheader("Activity Intensity Comparison")
-        fig, ax = plt.subplots()
-        leader_metrics_df[['VeryActiveMinutes', 'TotalIntensity']].plot(kind='bar', ax=ax)
-        st.pyplot(fig)
+        if not metrics_df.empty:
+            st.subheader("Activity Metrics")
+            fig, ax = plt.subplots(figsize=(10, 4))
+            metrics_df[['VeryActiveMinutes', 'AverageIntensity']].plot(kind='bar', ax=ax)
+            st.pyplot(fig)
     
     with tab3:
-        if 'TotalRestfulSleep' in leader_metrics_df.columns:
-            st.subheader("Restful Sleep Minutes")
-            st.area_chart(leader_metrics_df.set_index('Id')['TotalRestfulSleep'])
+        if 'TotalRestfulSleep' in metrics_df.columns and not metrics_df.empty:
+            st.subheader("Sleep Quality Analysis")
+            st.area_chart(metrics_df.set_index('Id')['TotalRestfulSleep'])
         else:
             st.info("No sleep data available")
 
@@ -239,81 +275,6 @@ def leaderboard_page(leader_metrics_df):
 #     st.error("No data available. Please check your database connection.")
 
 
-# # --------------------------
-# # Database Connection
-# # --------------------------
-# try:
-#     conn = connect_db(DB_PATH)
-# except Exception as e:
-#     st.error(f"### Database Connection Error ❌\n*Path:* {DB_PATH}\n*Error:* {str(e)}")
-#     st.stop()
-
-# # --------------------------
-# # User Selection
-# # --------------------------
-# try:
-#     user_ids = get_unique_user_ids(conn)
-#     selected_user = st.sidebar.selectbox("👤 Select User ID:", user_ids)
-# except Exception as e:
-#     st.sidebar.error(f"### User Loading Error ⚠\n`{str(e)}`")
-#     st.stop()
-
-# # --------------------------
-# # Dashboard Layout
-# # --------------------------
-# st.title("Fitbit Activity Dashboard")
-# st.markdown("---")
-
-# # Main content columns
-# col1, col2 = st.columns([3, 2])
-
-# # Heart Rate Analysis
-# with col1:
-#     st.header("❤ Heart Rate Analysis")
-#     try:
-#         heart_df = pd.read_sql_query(f"""
-#             SELECT datetime(Time) AS timestamp, Value AS heart_rate
-#             FROM heart_rate WHERE Id = {selected_user}
-#             ORDER BY timestamp
-#         """, conn)
-#         fig = plot_heart_rate(heart_df, selected_user)
-#         if fig: st.plotly_chart(fig, use_container_width=True)
-#     except Exception as e:
-#         st.error(f"Heart Rate Error: {str(e)}")
-
-# # Activity Summary
-# with col2:
-#     st.header("📊 Activity Summary")
-#     try:
-#         activity_df = pd.read_sql_query(f"""
-#             SELECT ActivityDate, TotalSteps, Calories
-#             FROM daily_activity WHERE Id = {selected_user}
-#             ORDER BY ActivityDate
-#         """, conn)
-#         fig = plot_activity_summary(activity_df, selected_user)
-#         if fig: st.plotly_chart(fig, use_container_width=True)
-#     except Exception as e:
-#         st.error(f"Activity Error: {str(e)}")
-
-# # Sleep Analysis
-# st.markdown("---")
-# st.header("💤 Sleep Patterns")
-# try:
-#     sleep_df = pd.read_sql_query(f"""
-#         SELECT date AS sleep_date, SUM(value) AS sleep_minutes
-#         FROM minute_sleep WHERE Id = {selected_user}
-#         GROUP BY sleep_date
-#     """, conn)
-#     sleep_df["sleep_hours"] = sleep_df["sleep_minutes"] / 60
-#     fig = plot_sleep_patterns(sleep_df, selected_user)
-#     if fig: st.plotly_chart(fig, use_container_width=True)
-# except Exception as e:
-#     st.error(f"Sleep Error: {str(e)}")
-
-# # Cleanup
-# conn.close()
-# st.markdown("---")
-# st.caption("Fitbit Dashboard - Created with Streamlit 🚀")
 
 # --------------------------
 # Navigation logic
@@ -326,7 +287,7 @@ if st.session_state.page == "activity":
 
 elif st.session_state.page == "top-users":
     st.header("🏅 Top Performers")
-    leaderboard_page(leader_metrics_df)  # FIXED: Changed | to (
+    leaderboard_page(metrics_df, champions) 
     st.write("Coming soon!")
 
 elif st.session_state.page == "user-insights":

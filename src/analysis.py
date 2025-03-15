@@ -440,13 +440,14 @@ def analyze_weight_log(connection):
     return weight_df
 
 # lala's leaderboard dataframe funtion
-def compute_user_metrics(connection):
-    # Get daily activity metrics
+def compute_leader_metrics(connection):
+    """Calculate comprehensive user metrics and identify top performers"""
+    # Query for daily activity metrics
     daily_query = """
         SELECT 
-            Id,
+            CAST(Id AS TEXT) AS Id,
             SUM(TotalDistance) AS TotalDistance,
-            SUM(VeryActiveDistance) AS VeryActiveDistance,
+            SUM(TotalSteps) AS TotalSteps,
             SUM(VeryActiveMinutes) AS VeryActiveMinutes,
             SUM(Calories) AS TotalCalories
         FROM daily_activity
@@ -454,20 +455,20 @@ def compute_user_metrics(connection):
     """
     df_daily = SQL_acquisition(connection, daily_query)
     
-    # Get hourly intensity metrics
+    # Query for average intensity
     hourly_query = """
         SELECT 
-            Id,
-            SUM(TotalIntensity) AS TotalIntensity
+            CAST(Id AS TEXT) AS Id,
+            AVG(TotalIntensity) AS AverageIntensity
         FROM hourly_intensity
         GROUP BY Id
     """
     df_hourly = SQL_acquisition(connection, hourly_query)
     
-    # Get sleep metrics (count of value=1)
+    # Query for restful sleep
     sleep_query = """
         SELECT 
-            Id,
+            CAST(Id AS TEXT) AS Id,
             COUNT(*) AS TotalRestfulSleep
         FROM minute_sleep
         WHERE value = 1
@@ -475,31 +476,46 @@ def compute_user_metrics(connection):
     """
     df_sleep = SQL_acquisition(connection, sleep_query)
     
-    # Check for empty results
-    if df_daily.empty and df_hourly.empty and df_sleep.empty:
-        print("No data found in any tables")
-        return pd.DataFrame()
-    
-    # Merge all dataframes
+    # Merge datasets with type safety
     merged_df = df_daily.copy()
     
-    # Convert IDs to string type for consistency
+    # Convert all IDs to string explicitly
     for df in [merged_df, df_hourly, df_sleep]:
-        if not df.empty:
-            df["Id"] = df["Id"].astype(str)
+        if not df.empty and 'Id' in df.columns:
+            df['Id'] = df['Id'].astype(str)
     
-    # Perform merges
-    if not df_hourly.empty:
-        merged_df = pd.merge(merged_df, df_hourly, on="Id", how="left")
-    if not df_sleep.empty:
-        merged_df = pd.merge(merged_df, df_sleep, on="Id", how="left")
+    # Perform type-safe merges
+    merge_order = [df_hourly, df_sleep]
+    for df in merge_order:
+        if not df.empty and 'Id' in df.columns:
+            merged_df = pd.merge(
+                merged_df,
+                df,
+                on="Id",
+                how="left",
+                validate="one_to_one"
+            )
     
-    # Fill missing values with 0
-    merged_df = merged_df.fillna(0)
+    # Clean data
+    merged_df = merged_df.fillna(0).replace([np.inf, -np.inf], 0)
+    champions = {}
     
-    # Find user with maximum distance
     if not merged_df.empty:
-        max_distance_user = merged_df.loc[merged_df['TotalDistance'].idxmax()]
-        print(f"User with longest total distance: {max_distance_user['Id']} ({max_distance_user['TotalDistance']} km)")
+        metrics_map = {
+            'steps_champion': 'TotalSteps',
+            'distance_champion': 'TotalDistance',
+            'active_minutes_champion': 'VeryActiveMinutes',
+            'calories_burned_champion': 'TotalCalories',
+            'average_intensity_champion': 'AverageIntensity',
+            'sleep_quality_champion': 'TotalRestfulSleep'
+        }
+        
+        for champion_name, col_name in metrics_map.items():
+            if col_name in merged_df.columns:
+                max_idx = merged_df[col_name].idxmax()
+                champions[champion_name] = {
+                    'user_id': merged_df.loc[max_idx, 'Id'],
+                    'value': merged_df.loc[max_idx, col_name]
+                }
     
-    return merged_df
+    return merged_df, champions
