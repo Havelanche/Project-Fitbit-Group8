@@ -56,21 +56,6 @@ streamlit run dashboard.py
 - **Sleep & Activity Correlation**: Explore how sleep patterns relate to daily activity.
 - **Visual Insights**: Interactive graphs to analyze step count, heart rate, and calorie burn.
 
-## Contribution Guidelines
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-repo/Fitbit-Analysis.git
-   ```
-2. Create a new branch for your feature:
-   ```bash
-   git checkout -b feature-name
-   ```
-3. Commit and push your changes:
-   ```bash
-   git commit -m "Added feature X"
-   git push origin feature-name
-   ```
-4. Open a pull request for review.
 
 ## Deployment
 - The dashboard will be deployed on **Streamlit Cloud**.
