@@ -1,130 +1,94 @@
-# Project Fitbit Group 8
+# Fitbit Data Analysis Project
 
-## Project Description
+## Project Overview
+This project analyzes Fitbit data collected from **33 respondents** in an Amazon survey (2016). The study involves statistical analysis, data visualization, and the development of a **Streamlit dashboard** to explore insights from the dataset.
 
-This project analyzes Fitbit data using Python and SQL. It provides various functions for data processing, visualization, and validation to understand user activity patterns.
+## Dataset
+The dataset consists of multiple CSV files and an SQLite database containing the following tables:
+- **daily_activity**: Daily statistics on steps, distance, and calories burnt.
+- **heart_rate**: Heart rate measurements taken every 5 seconds.
+- **hourly_calories**: Calories burned per hour.
+- **hourly_intensity**: Exercise intensity per hour.
+- **hourly_steps**: Steps taken per hour.
+- **minute_sleep**: Sleep duration logs.
+- **weight_log**: Weight, BMI, and fat percentage logs.
 
-## Installation
+## Project Objectives
+1. **Data Cleaning & Exploration**:
+   - Count unique users and compute total distances.
+   - Visualize daily calorie burns with date filters.
+   - Analyze workout frequency by day of the week.
+2. **Statistical Analysis & Regression Models**:
+   - Investigate the relationship between steps taken and calories burned.
+   - Perform regression analysis to estimate calorie burn.
+   - Explore correlations between sleep duration and activity levels.
+3. **Database Interaction**:
+   - Categorize users as Light, Moderate, or Heavy users based on Fitbit activity.
+   - Execute SQL queries to analyze sleep patterns, active minutes, and heart rate.
+4. **Data Visualization & Insights**:
+   - Create bar plots of steps, calories, and sleep duration per time block.
+   - Investigate the impact of weather conditions on activity.
+5. **Dashboard Development**:
+   - Implement a **Streamlit dashboard** to interactively explore the data.
+   - Provide individual user statistics, time-based filtering, and sleep analysis.
 
-To run this project, install the required dependencies:
-
+## Installation & Setup
+### Prerequisites
+Ensure you have **Python 3.8+** installed along with the following dependencies:
 ```bash
-pip install numpy pandas matplotlib seaborn statsmodels sqlite3
+pip install pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit
+```
+### Running the Analysis
+To execute the analysis and generate visualizations, run:
+```bash
+python fitbit_analysis.py
+```
+### Running the Dashboard
+To start the **Streamlit dashboard**, execute:
+```bash
+streamlit run dashboard.py
 ```
 
-## Usage
-
-### 1. Load Data
-
-```python
-load_data(filename)
+## Repository Structure
+```
+📂 Fitbit-Analysis-Project
+├── 📂 data                 # Raw and processed datasets
+├── 📂 scripts              # Python scripts for analysis
+├── 📂 dashboard            # Streamlit dashboard files
+├── README.md              # Project documentation (this file)
+├── fitbit_analysis.py      # Main analysis script
+├── dashboard.py            # Streamlit dashboard implementation
+└── requirements.txt        # List of dependencies
 ```
 
-**Description:** Converts a CSV file into a Pandas DataFrame for analysis.\
-**Parameters:**
+## Features of the Dashboard
+- **General Statistics**: Overview of Fitbit users' activity levels.
+- **User-Specific Analysis**: Select an individual to view their fitness trends.
+- **Time-Based Filtering**: Filter data by date range or time of day.
+- **Sleep & Activity Correlation**: Explore how sleep patterns relate to daily activity.
+- **Visual Insights**: Interactive graphs to analyze step count, heart rate, and calorie burn.
 
-- `filename` *(str)*: The path to the CSV file.\
-  **Returns:**
-- A DataFrame containing the loaded data.
+## Contribution Guidelines
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/your-repo/Fitbit-Analysis.git
+   ```
+2. Create a new branch for your feature:
+   ```bash
+   git checkout -b feature-name
+   ```
+3. Commit and push your changes:
+   ```bash
+   git commit -m "Added feature X"
+   git push origin feature-name
+   ```
+4. Open a pull request for review.
 
-### 2. Get Unique Users
+## Deployment
+- The dashboard will be deployed on **Streamlit Cloud**.
+- To make the repository public, navigate to GitHub settings > Change visibility.
+- Once deployed, access the dashboard at: [Dashboard Link]
 
-```python
-get_unique_users(df, column_name)
-```
-
-**Description:** Finds distinct user IDs and aggregates data (e.g., Total Steps, Total Distance).\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset to analyze.
-- `column_name` *(str)*: The column to sum up for each user.\
-  **Returns:**
-- A DataFrame of unique users with aggregated data.
-
-### 3. Plot Distance Distribution
-
-```python
-plot_distance_distribution(unique_users)
-```
-
-**Description:** Plots a histogram showing the distribution of total distances run by users.\
-**Parameters:**
-
-- `unique_users` *(DataFrame)*: The DataFrame returned by `get_unique_users()`.
-
-### 4. Calories Burned Per Day
-
-```python
-calories_burned_per_day(df, user_id, start_date=None, end_date=None)
-```
-
-**Description:** Plots a user's daily calorie burn over a specified time range.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
-- `user_id` *(int)*: The user ID to analyze.
-- `start_date` *(str, optional)*: Start date (format: YYYY-MM-DD).
-- `end_date` *(str, optional)*: End date (format: YYYY-MM-DD).
-
-### 5. Plot Weekly Workout Distribution
-
-```python
-plot_workout(df)
-```
-
-**Description:** Visualizes workout frequency across weekdays using a bar chart.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
-
-### 6. Plot Linear Regression Model
-
-```python
-plot_LRM(df, user_id)
-```
-
-**Description:** Creates a regression plot showing the relationship between total steps and calories burned.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
-- `user_id` *(int)*: The user ID to analyze.
-
-### 7. Classify Users
-
-```python
-classify_user(df)
-```
-
-**Description:** Categorizes users into 'Light', 'Moderate', or 'Heavy' based on activity frequency.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.\
-  **Returns:**
-- A DataFrame with user classifications.
-
-### 8. SQL Data Acquisition
-
-```python
-SQL_acquisition(query)
-```
-
-**Description:** Runs an SQL query and returns the result as a Pandas DataFrame.\
-**Parameters:**
-
-- `query` *(str)*: SQL query string.\
-  **Returns:**
-- A DataFrame with query results.
-
-### 9. Verify Total Steps
-
-```python
-verify_total_steps(df)
-```
-
-**Description:** Compares total steps recorded in the CSV file and database to check for discrepancies.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
 
 ## Contributors
 
