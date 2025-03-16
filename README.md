@@ -49,18 +49,6 @@ To start the **Streamlit dashboard**, execute:
 streamlit run dashboard.py
 ```
 
-## Repository Structure
-```
-📂 Fitbit-Analysis-Project
-├── 📂 data                 # Raw and processed datasets
-├── 📂 scripts              # Python scripts for analysis
-├── 📂 dashboard            # Streamlit dashboard files
-├── README.md              # Project documentation (this file)
-├── fitbit_analysis.py      # Main analysis script
-├── dashboard.py            # Streamlit dashboard implementation
-└── requirements.txt        # List of dependencies
-```
-
 ## Features of the Dashboard
 - **General Statistics**: Overview of Fitbit users' activity levels.
 - **User-Specific Analysis**: Select an individual to view their fitness trends.
