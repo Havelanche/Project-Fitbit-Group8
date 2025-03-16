@@ -113,75 +113,94 @@ def leaderboard_page(metrics_df, champions):
     st.header("🏆 User Leaderboard")
     
     # --------------------------
-    # Sidebar - Champion Selection
+    # Sidebar Section
     # --------------------------
-    st.sidebar.title("🌟 Champion Filters")
-    selected_champs = st.sidebar.multiselect(
-        "Select champions to highlight:",
-        options=["Most Steps", "Longest Distance", "Best Sleeper"],
-        default=["Most Steps"]
-    )
-    
+    with st.sidebar:
+        st.title("🌟 Choose Your Champion")
+        
+        # Champion selection radio buttons
+        selected_champ = st.radio(
+            "Select metric to highlight:", 
+            ["Step Count Leader", "Distance Covered Champion", 
+             "Active Minutes Record Holder", "Calorie Burn King/Queen", 
+             "Sleep Quality Master"]
+        )
+        
+        # Map selection to champion keys
+        champ_mapping = {
+            "Step Count Leader": "steps_champion",
+            "Distance Covered Champion": "distance_champion",
+            "Active Minutes Record Holder": "active_minutes_champion",
+            "Calorie Burn King/Queen": "calories_burned_champion",
+            "Sleep Quality Master": "sleep_quality_champion"
+        }
+        
+        # Get selected champion data
+        champ_key = champ_mapping[selected_champ]
+        champion = champions.get(champ_key, {})
+        
+        # Calendar section
+        if champion and not metrics_df.empty:
+            st.title("📅 Device Usage Stats")
+            user_id = champion['user_id']
+            
+            try:
+                # Get user's date info from metrics_df
+                user_data = metrics_df[metrics_df['Id'] == user_id].iloc[0]
+                first_date = pd.to_datetime(user_data['FirstDate'])
+                last_date = pd.to_datetime(user_data['LastDate'])
+                usage_days = user_data['UsageDays']
+                
+                # Date range display
+                st.write(f"**Tracking Period:**")
+                st.caption(f"{first_date.strftime('%b %d, %Y')} - {last_date.strftime('%b %d, %Y')}")
+                
+                # Usage metrics
+                st.metric("Total Tracked Days", 
+                             f"{usage_days} days",
+                             help="Days with recorded activity")
+                
+            except Exception as e:
+                st.error(f"Couldn't load calendar data: {str(e)}")
+
     # --------------------------
-    # Main Metrics Display
+    # Main Content
     # --------------------------
-    if metrics_df.empty:
-        st.warning("No metrics data available")
+    if not champion:
+        st.warning("No champion data available")
         return
     
-    # Create metric columns
-    cols = st.columns(5)
-    metric_config = {
-        'TotalSteps': {'title': 'Total Steps', 'format': '{:,.0f}'},
-        'TotalDistance': {'title': 'Total Distance', 'format': '{:.2f} km'},
-        'TotalCalories': {'title': 'Calories Burned', 'format': '{:,.0f}'},
-        'AverageIntensity': {'title': 'Avg Intensity', 'format': '{:.1f}'},
-        'TotalRestfulSleep': {'title': 'Restful Sleep', 'format': '{:,.0f} mins'}
+    # Champion header
+    display_titles = {
+        "steps_champion": "👟 Step Master",
+        "distance_champion": "🏃 Distance Champion",
+        "active_minutes_champion": "⚡ Activity King/Queen",
+        "calories_burned_champion": "🔥 Calorie Burner",
+        "sleep_quality_champion": "💤 Sleep Champion"
     }
+    st.subheader(f"{display_titles[champ_key]}: User {champion['user_id']}")
     
-    for idx, (col, (metric, config)) in enumerate(zip(cols, metric_config.items())):
-        with col:
-            if metric in metrics_df.columns:
-                avg_value = metrics_df[metric].mean()
-                champ_key = f"{metric.split('_')[-1].lower()}_champion"
-                
-                if champ_key in champions and any(c.lower() in champ_key for c in selected_champs):
-                    champ = champions[champ_key]
-                    st.metric(
-                        label=config['title'],
-                        value=config['format'].format(champ['value']),
-                        delta=f"Champion: {champ['user_id']}"
-                    )
-                else:
-                    st.metric(
-                        label=config['title'],
-                        value=config['format'].format(avg_value),
-                        help="Average across all users"
-                    )
+    # Metrics columns
+    if not metrics_df.empty and 'Id' in metrics_df.columns:
+        champ_metrics = metrics_df[metrics_df['Id'] == champion['user_id']].iloc[0]
+        cols = st.columns(5)
+        
+        metric_config = {
+            'TotalSteps': ("Steps", "{:,}", "Total number of steps taken."),
+            'TotalDistance': ("Distance", "{:.2f} km", "Total kilometers tracked."),
+            'TotalCalories': ("Calories", "{:,} kcal", "Total estimated energy expenditure (in kilocalories)."),
+            'AverageIntensity': ("Intensity", "{:.1f}", "Average intensity state exhibited during that hour "
+                     "(TotalIntensity for that ActivityHour divided by 60)."),
+            'TotalRestfulSleep': ("Sleep", "{:,} mins", "Total number of minutes classified as being "
+                          "“asleep” sum total of light, deep, and REM sleep).")
+        }
+        
+        for col, (metric, (title, fmt, help_txt)) in zip(cols, metric_config.items()):
+            with col:
+                value = fmt.format(champ_metrics[metric]) if metric in champ_metrics else "N/A"
+                st.metric(title, value, help=help_txt)
     
-    # --------------------------
-    # Top Performers Table
-    # --------------------------
-    st.subheader("🏅 Top 5 Performers")
-    if not metrics_df.empty:
-        display_df = metrics_df.sort_values('TotalDistance', ascending=False).head()
-        st.dataframe(
-            display_df,
-            column_config={
-                "Id": "User ID",
-                "TotalSteps": "Total Steps",
-                "TotalDistance": st.column_config.NumberColumn(
-                    "Distance (km)", 
-                    format="%.2f"
-                ),
-                "TotalRestfulSleep": "Restful Sleep (mins)"
-            },
-            hide_index=True
-        )
-    
-    # --------------------------
     # Visualization Tabs
-    # --------------------------
     tab1, tab2, tab3 = st.tabs(["Distance Analysis", "Activity Metrics", "Sleep Patterns"])
     
     with tab1:
@@ -191,13 +210,13 @@ def leaderboard_page(metrics_df, champions):
     
     with tab2:
         if not metrics_df.empty:
-            st.subheader("Activity Metrics")
+            st.subheader("Activity Metrics Comparison")
             fig, ax = plt.subplots(figsize=(10, 4))
             metrics_df[['VeryActiveMinutes', 'AverageIntensity']].plot(kind='bar', ax=ax)
             st.pyplot(fig)
     
     with tab3:
-        if 'TotalRestfulSleep' in metrics_df.columns and not metrics_df.empty:
+        if 'TotalRestfulSleep' in metrics_df.columns:
             st.subheader("Sleep Quality Analysis")
             st.area_chart(metrics_df.set_index('Id')['TotalRestfulSleep'])
         else:
@@ -206,73 +225,6 @@ def leaderboard_page(metrics_df, champions):
 # --------------------------
 # Individual User Statistics
 # --------------------------
-
-# --------------------------
-# Sidebar - User Selection and Date Filter
-# --------------------------
-# st.sidebar.title("🔍 Filters")
-
-# if merged_df is not None:
-#     user_ids = merged_df['Id'].unique().tolist()
-#     selected_user = st.sidebar.selectbox("Select User ID:", user_ids)
-
-#     date_range = st.sidebar.date_input(
-#         "Select Date Range:",
-#         [pd.to_datetime(merged_df['ActivityDate'].min()), pd.to_datetime(merged_df['ActivityDate'].max())],
-#         pd.to_datetime(merged_df['ActivityDate'].min()),
-#         pd.to_datetime(merged_df['ActivityDate'].max())
-#     )
-
-#     # Ensure ActivityDate is in datetime format
-#     merged_df['ActivityDate'] = pd.to_datetime(merged_df['ActivityDate'], errors='coerce')
-
-#     # Filter by user ID and date range
-#     filtered_df = merged_df[
-#         (merged_df['Id'] == selected_user) &
-#         (merged_df['ActivityDate'] >= pd.Timestamp(date_range[0])) &
-#         (merged_df['ActivityDate'] <= pd.Timestamp(date_range[1]))
-#     ]
-
-#     st.write("Filtered Data:", filtered_df)
-#     # --------------------------
-#     # Main Dashboard
-#     # --------------------------
-#     st.title("📊 Fitbit Dashboard")
-#     st.markdown("---")
-
-#     # General Statistics
-#     st.header("📈 General Statistics")
-#     col1, col2, col3 = st.columns(3)
-
-#     col1.metric("Total Steps", f"{filtered_df['TotalSteps'].sum():,.0f}")
-#     col2.metric("Average Sleep (hours)", f"{(filtered_df['SleepMinutes'].mean() / 60):.2f}")
-#     col3.metric("Avg Calories Burned", f"{filtered_df['Calories'].mean():,.0f}")
-
-#     # Graphical Summary
-#     st.subheader("Activity Over Time")
-#     fig = px.line(filtered_df, x='date', y=['TotalSteps', 'Calories'], title="Daily Steps & Calories")
-#     st.plotly_chart(fig, use_container_width=True)
-
-#     # Sleep Analysis
-#     st.header("💤 Sleep Analysis")
-#     sleep_fig = px.bar(filtered_df, x='date', y='SleepMinutes', title="Daily Sleep Duration (minutes)")
-#     st.plotly_chart(sleep_fig, use_container_width=True)
-
-#     # Weekend vs Weekday Analysis
-#     st.subheader("📅 Weekend vs Weekday Analysis")
-#     filtered_df['Weekend'] = filtered_df['DayOfWeek'].isin(['Saturday', 'Sunday'])
-#     weekend_df = filtered_df.groupby('Weekend').agg({
-#         'TotalSteps': 'mean',
-#         'SleepMinutes': 'mean'
-#     }).reset_index()
-
-#     weekend_fig = px.bar(weekend_df, x='Weekend', y=['TotalSteps', 'SleepMinutes'],
-#                          title="Average Steps and Sleep: Weekdays vs Weekends")
-#     st.plotly_chart(weekend_fig, use_container_width=True)
-
-#     st.caption("Fitbit Dashboard - Created with Streamlit 🚀")
-# else:
-#     st.error("No data available. Please check your database connection.")
 
 
 
@@ -286,9 +238,8 @@ if st.session_state.page == "activity":
     show_activity_overview(merged_df)
 
 elif st.session_state.page == "top-users":
-    st.header("🏅 Top Performers")
     leaderboard_page(metrics_df, champions) 
-    st.write("Coming soon!")
+    st.write("Work in Progress!")
 
 elif st.session_state.page == "user-insights":
     st.header("🔍 User Insights")

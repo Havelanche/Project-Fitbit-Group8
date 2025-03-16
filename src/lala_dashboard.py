@@ -1,3 +1,6 @@
+import streamlit as st
+import pandas as pd
+
 from database import get_unique_user_ids, get_unique_user_ids
 from dashboard_visualization import plot_heart_rate, plot_activity_summary, plot_sleep_patterns
 
@@ -90,3 +93,25 @@ def opening_page_text:
     # text block 2
     # The Fitbit app collects data from Fitbit’s wearables, providing metrics on physical activity, sleep, heart rate, and nutrition. 
     # Fitbit Premium enhances the user experience with personalized health reports and advanced insights. 
+
+
+def top_performers_table():
+# --------------------------
+    # Top Performers Table
+    # --------------------------
+    st.subheader("🏅 Top 5 Performers")
+    if not metrics_df.empty:
+        display_df = metrics_df.sort_values('TotalDistance', ascending=False).head()
+        st.dataframe(
+            display_df,
+            column_config={
+                "Id": "User ID",
+                "TotalSteps": "Total Steps",
+                "TotalDistance": st.column_config.NumberColumn(
+                    "Distance (km)", 
+                    format="%.2f"
+                ),
+                "TotalRestfulSleep": "Restful Sleep (mins)"
+            },
+            hide_index=True
+        )

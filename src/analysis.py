@@ -445,7 +445,7 @@ def compute_leader_metrics(connection):
     # Query for daily activity metrics
     daily_query = """
         SELECT 
-            CAST(Id AS TEXT) AS Id,
+            CAST(Id AS INTEGER) AS Id,
             SUM(TotalDistance) AS TotalDistance,
             SUM(TotalSteps) AS TotalSteps,
             SUM(VeryActiveMinutes) AS VeryActiveMinutes,
@@ -458,7 +458,7 @@ def compute_leader_metrics(connection):
     # Query for average intensity
     hourly_query = """
         SELECT 
-            CAST(Id AS TEXT) AS Id,
+            CAST(Id AS INTEGER) AS Id,
             AVG(TotalIntensity) AS AverageIntensity
         FROM hourly_intensity
         GROUP BY Id
@@ -468,7 +468,7 @@ def compute_leader_metrics(connection):
     # Query for restful sleep
     sleep_query = """
         SELECT 
-            CAST(Id AS TEXT) AS Id,
+            CAST(Id AS INTEGER) AS Id,
             COUNT(*) AS TotalRestfulSleep
         FROM minute_sleep
         WHERE value = 1
@@ -476,16 +476,28 @@ def compute_leader_metrics(connection):
     """
     df_sleep = SQL_acquisition(connection, sleep_query)
     
-    # Merge datasets with type safety
+    # Date range query
+    date_query = """
+        SELECT 
+            Id,
+            MIN(ActivityDate) AS FirstDate,
+            MAX(ActivityDate) AS LastDate,
+            COUNT(DISTINCT ActivityDate) AS UsageDays
+        FROM daily_activity
+        GROUP BY Id
+    """
+    df_dates = SQL_acquisition(connection, date_query)
+
+    # Initialize merged_df with daily data
     merged_df = df_daily.copy()
-    
-    # Convert all IDs to string explicitly
-    for df in [merged_df, df_hourly, df_sleep]:
+
+    # Convert all IDs to integers
+    for df in [merged_df, df_hourly, df_sleep, df_dates]:
         if not df.empty and 'Id' in df.columns:
-            df['Id'] = df['Id'].astype(str)
-    
-    # Perform type-safe merges
-    merge_order = [df_hourly, df_sleep]
+            df['Id'] = df['Id'].astype(str).str.split('.').str[0].astype(int)
+
+    # Merge all dataframes
+    merge_order = [df_hourly, df_sleep, df_dates]
     for df in merge_order:
         if not df.empty and 'Id' in df.columns:
             merged_df = pd.merge(
@@ -495,7 +507,7 @@ def compute_leader_metrics(connection):
                 how="left",
                 validate="one_to_one"
             )
-    
+
     # Clean data
     merged_df = merged_df.fillna(0).replace([np.inf, -np.inf], 0)
     champions = {}
