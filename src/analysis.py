@@ -335,7 +335,7 @@ def aggregate_data(df, raw_data=None, group_by='Id'):
 # Task 9: Analyzing and merge data
 def merge_and_analyze_data(connection):
     try:
-        daily_activity = pd.read_sql("SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes FROM daily_activity", connection)
+        daily_activity = pd.read_sql("SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes, VeryActiveMinutes, FairlyActiveMinutes, LightlyActiveMinutes FROM daily_activity", connection)
         minute_sleep = pd.read_sql("SELECT Id, date, value AS SleepMinutes FROM minute_sleep", connection)
         weight_log = pd.read_sql("SELECT Id, Date, WeightKg, BMI FROM weight_log", connection)
 
