@@ -112,31 +112,42 @@ def SQL_acquisition(connection, query):
         return pd.DataFrame()
     
 def analyze_sleep_vs_activity(connection):
-    query_sleep = """
-        SELECT Id, date AS ActivityDate, SUM(value) AS SleepDuration
-        FROM minute_sleep
-        WHERE value > 0
-        GROUP BY Id, ActivityDate
-    """
-    df_sleep = SQL_acquisition(connection, query_sleep)
-    df_sleep["SleepDuration"] = df_sleep["SleepDuration"] / 60
+    try:
+        # 🟢 Query Sleep Duration (in minutes)
+        query_sleep = """
+            SELECT Id, 
+                   COUNT(*) AS SleepDuration
+            FROM minute_sleep
+            WHERE value > 0
+            GROUP BY Id
+        """
+        df_sleep = SQL_acquisition(connection, query_sleep)
 
-    query_activity = """
-        SELECT Id, ActivityDate, 
-               (VeryActiveMinutes + FairlyActiveMinutes + LightlyActiveMinutes) AS TotalActiveMinutes
-        FROM daily_activity
-    """
-    df_activity = SQL_acquisition(connection, query_activity)
+        # 🟢 Query Total Activity Minutes (Avoid NULL values)
+        query_activity = """
+            SELECT Id, 
+                   COALESCE(VeryActiveMinutes, 0) + 
+                   COALESCE(FairlyActiveMinutes, 0) + 
+                   COALESCE(LightlyActiveMinutes, 0) AS TotalActiveMinutes
+            FROM daily_activity
+            GROUP BY Id
 
-    # Prepare and merge data
-    df_sleep["Id"] = df_sleep["Id"].astype(str)
-    df_activity["Id"] = df_activity["Id"].astype(str)
-    df_sleep["ActivityDate"] = pd.to_datetime(df_sleep["ActivityDate"]).dt.date.astype(str)
-    df_activity["ActivityDate"] = pd.to_datetime(df_activity["ActivityDate"]).dt.date.astype(str)
-    df_merged = df_activity.merge(df_sleep, on=["Id", "ActivityDate"], how="inner")
+        """
+        df_activity = SQL_acquisition(connection, query_activity)
 
-    if df_merged.empty:
-        print("No data available after merging activity and sleep data.")
+        # 🔹 Convert Data Types
+        df_sleep["Id"] = df_sleep["Id"].astype(str)
+        df_activity["Id"] = df_activity["Id"].astype(str)
+
+        # 🔹 Merge Data on `Id` and `ActivityDate`
+        df_merged = df_activity.merge(df_sleep, on=["Id"], how="inner")
+
+        if df_merged.empty:
+            print("No data available after merging activity and sleep data.")
+            return None
+    
+    except Exception as e:
+        print(f"⚠️ An error occurred: {e}")
         return None
 
     model = smf.ols("SleepDuration ~ TotalActiveMinutes", data=df_merged).fit()
@@ -144,30 +155,38 @@ def analyze_sleep_vs_activity(connection):
     plot_sleep_vs_activity(df_merged)
     return df_merged, model
 
+
 # TASK 4: SLEEP VS. SEDENTARY MINUTES
 def analyze_sleep_vs_sedentary(connection):
     try:
+        # 🟢 Query Sleep Duration (in minutes)
         query_sleep = """
-            SELECT Id, date AS ActivityDate, SUM(value) AS SleepDuration
+            SELECT Id, 
+                   COUNT(*) AS SleepDuration
             FROM minute_sleep
             WHERE value > 0
-            GROUP BY Id, ActivityDate
+            GROUP BY Id
         """
         df_sleep = SQL_acquisition(connection, query_sleep)
-        df_sleep["SleepDuration"] = df_sleep["SleepDuration"] / 60
 
+        # 🟢 Query Sedentary Minutes
         query_sedentary = """
-            SELECT Id, ActivityDate, SedentaryMinutes
+            SELECT Id, 
+                   COALESCE(SedentaryMinutes, 0) AS SedentaryMinutes
             FROM daily_activity
+            GROUP BY Id
+
         """
         df_sedentary = SQL_acquisition(connection, query_sedentary)
 
+        # 🔹 Convert Data Types to Ensure Consistency
         df_sleep["Id"] = df_sleep["Id"].astype(str)
         df_sedentary["Id"] = df_sedentary["Id"].astype(str)
-        df_sleep["ActivityDate"] = pd.to_datetime(df_sleep["ActivityDate"]).dt.date.astype(str)
-        df_sedentary["ActivityDate"] = pd.to_datetime(df_sedentary["ActivityDate"]).dt.date.astype(str)
-        df_merged = df_sedentary.merge(df_sleep, on=["Id", "ActivityDate"], how="inner")
 
+        # 🔹 Merge Data on `Id` and `ActivityDate`
+        df_merged = df_sedentary.merge(df_sleep, on=["Id"], how="inner")
+
+        # 🚨 Check for Empty DataFrame
         if df_merged.empty:
             print("Error: Merged dataframe is empty. Check date formats.")
             return None
@@ -335,9 +354,9 @@ def aggregate_data(df, raw_data=None, group_by='Id'):
 # Task 9: Analyzing and merge data
 def merge_and_analyze_data(connection):
     try:
-        daily_activity = pd.read_sql("SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes FROM daily_activity", connection)
-        minute_sleep = pd.read_sql("SELECT Id, date, value AS SleepMinutes FROM minute_sleep", connection)
-        weight_log = pd.read_sql("SELECT Id, Date, WeightKg, BMI FROM weight_log", connection)
+        daily_activity = SQL_acquisition(connection, "SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes FROM daily_activity")
+        minute_sleep = SQL_acquisition(connection, "SELECT Id, date, value AS SleepMinutes FROM minute_sleep")
+        weight_log = SQL_acquisition(connection, "SELECT Id, Date, WeightKg, BMI FROM weight_log")
 
         # Convert dates to datetime (strip time for weight_log and minute_sleep)
         daily_activity['ActivityDate'] = pd.to_datetime(daily_activity['ActivityDate'], format='%m/%d/%Y', errors='coerce')
@@ -418,7 +437,7 @@ def activity_vs_sleep_insights(df):
 def analyze_weight_log(connection):
     """Analyze weight log table and handle missing values."""
     query = "SELECT * FROM weight_log"
-    weight_df = pd.read_sql_query(query, connection)
+    weight_df = SQL_acquisition(connection, query)
 
     # Handle missing values by filling with mean per Id
     for col in ['WeightKg', 'Fat', 'BMI']:
