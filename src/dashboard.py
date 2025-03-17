@@ -6,24 +6,21 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 
 from database import connect_db, get_unique_user_ids
-from dashboard_visualization import plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution
+from dashboard_visualization import plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_sleep_efficiency, plot_steps_vs_sleep
 from analysis import merge_and_analyze_data, compute_leader_metrics
 
 
 # --------------------------
 # Page setup (must be FIRST Streamlit command)
-# --------------------------
 st.set_page_config(page_title="Fitbit Dashboard", layout="wide", page_icon=":material/sprint:")
 
 # --------------------------
 # Configuration
-# --------------------------
 current_dir = os.path.dirname(__file__)
 DB_PATH = os.path.join(current_dir, "..", "data", "fitbit_database.db")
 
 # --------------------------
 # Load and prepare data
-# --------------------------
 try:
     conn = connect_db(DB_PATH)
     merged_df, user_summaries = merge_and_analyze_data(conn)
@@ -38,7 +35,6 @@ except Exception as e:
 
 # --------------------------
 # Homepage setup
-# --------------------------
 page = st.sidebar.radio("Navigation", ["Home", "Activity Overview", "Top Users", "Individual User"])
 
 if page == "Home":
@@ -59,7 +55,6 @@ if page == "Home":
             
 # --------------------------
 # Activity Overview Page
-# --------------------------
 def show_activity_overview(merged_df):
     st.header("📊 Activity Overview")
 
@@ -110,7 +105,6 @@ def show_activity_overview(merged_df):
 
 # --------------------------
 # Leaderboard
-# --------------------------
 def leaderboard_page(metrics_df, champions):
     st.header("🏆 User Leaderboard")
     
@@ -160,10 +154,8 @@ def leaderboard_page(metrics_df, champions):
     # Get selected user ID
     user_id = champion['user_id']
     
-# =================================================================
-# STEP 1: FETCH INDIVIDUAL USER'S DAILY DATA (UPDATED)
-# =================================================================
-    # FETCH INDIVIDUAL USER'S DAILY DATA
+    # =================================================================
+    # FETCH INDIVIDUAL USER'S DAILY DATA (UPDATED)
     try:
         conn = connect_db(DB_PATH)
         
@@ -176,37 +168,53 @@ def leaderboard_page(metrics_df, champions):
             ORDER BY ActivityDate
         """
         champ_daily_df = pd.read_sql(champ_query, conn)
-
-        # Get sleep data - count sleep minutes (value=1) per date
-        champ_sleep_query = f"""
-            SELECT 
-                date AS ActivityDate,  -- Rename to match activity data
-                COUNT(*) AS TotalRestfulSleep
-            FROM minute_sleep
-            WHERE Id = {user_id} AND value = 1
-            GROUP BY date  -- Correct grouping by actual date column
-            ORDER BY date
-        """
-        champ_sleep_df = pd.read_sql(champ_sleep_query, conn)
-
-        # Merge activity and sleep data
-        champ_daily_df = pd.merge(
-            champ_daily_df,
-            champ_sleep_df,
-            on="ActivityDate",
-            how="left"  # Keep all activity dates even with no sleep data
-        )
-
-        # Convert date and handle missing sleep data
-        champ_daily_df['ActivityDate'] = pd.to_datetime(champ_daily_df['ActivityDate'], format='%m/%d/%Y')
-        champ_daily_df['TotalRestfulSleep'] = champ_daily_df['TotalRestfulSleep'].fillna(0).astype(int)
-
-        # Convert numeric columns
-        numeric_cols = ['TotalSteps', 'TotalDistance', 'Calories', 
-                    'VeryActiveMinutes', 'SedentaryMinutes']
-        champ_daily_df[numeric_cols] = champ_daily_df[numeric_cols].apply(pd.to_numeric, errors='coerce')
         
-        conn.close()
+        # Ensure date column is in datetime format for merging
+        champ_daily_df["ActivityDate"] = pd.to_datetime(champ_daily_df["ActivityDate"]).dt.date
+
+        # Get sleep data
+        champ_sleep_query = f"""
+            SELECT date AS raw_datetime, value
+            FROM minute_sleep
+            WHERE Id = {user_id}
+        """
+        champ_sleep_raw = pd.read_sql(champ_sleep_query, conn)
+
+        # Convert to datetime and floor to minute
+        champ_sleep_raw["datetime"] = pd.to_datetime(
+            champ_sleep_raw["raw_datetime"], 
+            errors="coerce",  # Handle possible format issues
+            format="mixed"
+        ).dt.floor("min")
+
+        # Extract date only for aggregation
+        champ_sleep_raw["ActivityDate"] = champ_sleep_raw["datetime"].dt.date
+
+        # Aggregate sleep states by date
+        champ_sleep_df = champ_sleep_raw.groupby("ActivityDate")["value"].value_counts().unstack(fill_value=0)
+
+        # Rename columns to match sleep states
+        champ_sleep_df = champ_sleep_df.rename(columns={
+            1: "AsleepMinutes",
+            2: "RestlessMinutes",
+            3: "AwakeMinutes"
+        }).reset_index()
+
+        # Ensure all sleep state columns exist, even if missing
+        for col in ["AsleepMinutes", "RestlessMinutes", "AwakeMinutes"]:
+            if col not in champ_sleep_df.columns:
+                champ_sleep_df[col] = 0
+
+        # Merge with daily activity data
+        champ_daily_df = champ_daily_df.merge(champ_sleep_df, on="ActivityDate", how="left")
+
+        # Sort data by date
+        champ_daily_df = champ_daily_df.sort_values(by="ActivityDate")
+
+        # Fill missing values and convert to integers
+        sleep_cols = ["AsleepMinutes", "RestlessMinutes", "AwakeMinutes"]
+        champ_daily_df[sleep_cols] = champ_daily_df[sleep_cols].fillna(0).astype(int)
+
     except Exception as e:
         st.error(f"Failed to load user data: {str(e)}")
         st.stop()
@@ -245,23 +253,42 @@ def leaderboard_page(metrics_df, champions):
     
     with tab1:
         st.subheader("📈 Step-Distance Relationship")
-        plot_step_distance_relationship(champ_daily_df, user_id)
+        plot_step_distance_relationship(champ_daily_df)
 
     with tab2:  
         st.subheader("🔥 Calories vs. Active Minutes") 
-        plot_calories_vs_activity(champ_daily_df, user_id)
+        plot_calories_vs_activity(champ_daily_df)
 
     with tab3:  
         st.subheader("💤 Sleep Quality Distribution")
-        plot_sleep_distribution(champ_daily_df, user_id)
+        plot_sleep_distribution(champ_daily_df)
+
+    # =================================================================
+    # Additional Sleep Analysis Section
+    st.divider()
+    st.subheader("🔍 Advanced Sleep Analysis")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        plot_sleep_correlations(champ_daily_df)
+    with col2:
+        plot_sleep_efficiency(champ_daily_df)
+    
+    st.divider()
+    st.subheader("Temporal Comparisons")
+    plot_steps_vs_sleep(champ_daily_df)
+
+    # st.subheader("🔍 Additional Insights on Sleep")
+    # plot_active_vs_sleep(champ_daily_df, user_id)
+    # plot_sedentary_vs_sleep(champ_daily_df, user_id)
+    # plot_sleep_heatmap(champ_sleep_raw, user_id)
 
 # --------------------------
 # Individual User Statistics
-# --------------------------
 
 # --------------------------
 # Navigation logic
-# --------------------------
+
 if 'page' not in st.session_state:
     st.session_state.page = "home"
 
