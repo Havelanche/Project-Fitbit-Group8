@@ -1,4 +1,6 @@
 import plotly.express as px
+import plotly.graph_objects as go
+
 import streamlit as st
 
 def plot_heart_rate(data, user_id):
@@ -64,3 +66,107 @@ def plot_sleep_patterns(data, user_id):
     )
     fig.update_layout(yaxis_range=[0, 12])
     return fig
+
+def plot_step_distance_relationship(champ_daily_df, user_id):
+    if champ_daily_df.empty:
+        st.warning("No daily data available for this user.")
+        return
+
+    # Ensure the data is sorted by date
+    champ_daily_df = champ_daily_df.sort_values(by="ActivityDate")
+
+    fig = go.Figure()
+    # Add Steps (Bars)
+    fig.add_trace(go.Bar(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["TotalSteps"],
+        name="Steps",
+        marker_color="blue"
+    ))
+    # Add Distance (Line)
+    fig.add_trace(go.Scatter(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["TotalDistance"],
+        name="Distance (km)",
+        line=dict(color="orange"),
+        yaxis="y2",
+        mode="lines+markers"  # Ensures connected points
+    ))
+    # Update layout
+    fig.update_layout(
+        title=f"Steps vs. Distance for User {user_id}",
+        xaxis=dict(title="Date", showticklabels=False),  # Hides individual dates
+        yaxis=dict(title="Steps", side="left"),
+        yaxis2=dict(title="Distance (km)", side="right", overlaying="y"),
+        hovermode="x unified"
+    )
+
+    st.plotly_chart(fig)
+
+def plot_calories_vs_activity(champ_daily_df, user_id):
+    if champ_daily_df.empty:
+        st.warning("No daily data available for this user.")
+        return
+
+    champ_daily_df = champ_daily_df.sort_values(by="ActivityDate")
+
+    fig = go.Figure()
+    # Active Minutes (Bar)
+    fig.add_trace(go.Bar(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["VeryActiveMinutes"],
+        name="Active Minutes",
+        marker_color="green"
+    ))
+    # Calories (Line)
+    fig.add_trace(go.Scatter(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["Calories"],
+        name="Calories (kcal)",
+        line=dict(color="red"),
+        yaxis="y2",
+        mode="lines+markers"
+    ))
+    # Layout
+    fig.update_layout(
+        title=f"Calories vs. Activity for User {user_id}",
+        xaxis=dict(title="Date", showticklabels=False),
+        yaxis=dict(title="Active Minutes", side="left"),
+        yaxis2=dict(title="Calories (kcal)", side="right", overlaying="y"),
+        hovermode="x unified"
+    )
+    st.plotly_chart(fig)
+
+def plot_sleep_distribution(champ_daily_df, user_id):
+    if champ_daily_df.empty or "TotalRestfulSleep" not in champ_daily_df:
+        st.warning("No sleep data available for this user.")
+        return
+
+    champ_daily_df = champ_daily_df.sort_values(by="ActivityDate")
+
+    fig = go.Figure()
+    # Sleep Minutes (Bar)
+    fig.add_trace(go.Bar(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["TotalRestfulSleep"],
+        name="Sleep (mins)",
+        marker_color="purple"
+    ))
+    # Sedentary Minutes (Line)
+    fig.add_trace(go.Scatter(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["SedentaryMinutes"],
+        name="Sedentary Time (mins)",
+        line=dict(color="gray"),
+        yaxis="y2",
+        mode="lines+markers"
+    ))
+    # Layout
+    fig.update_layout(
+        title=f"Sleep vs. Sedentary Time for User {user_id}",
+        xaxis=dict(title="Date", showticklabels=False),
+        yaxis=dict(title="Sleep (mins)", side="left"),
+        yaxis2=dict(title="Sedentary Time (mins)", side="right", overlaying="y"),
+        hovermode="x unified"
+    )
+    st.plotly_chart(fig)

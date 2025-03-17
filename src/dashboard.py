@@ -3,8 +3,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+
 from database import connect_db, get_unique_user_ids
-from dashboard_visualization import plot_heart_rate, plot_activity_summary, plot_sleep_patterns
+from dashboard_visualization import plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution
 from analysis import merge_and_analyze_data, compute_leader_metrics
 
 
@@ -114,7 +116,6 @@ def leaderboard_page(metrics_df, champions):
     
     # --------------------------
     # Sidebar Section
-    # --------------------------
     with st.sidebar:
         st.title("🌟 Choose Your Champion")
         
@@ -139,38 +140,78 @@ def leaderboard_page(metrics_df, champions):
         champ_key = champ_mapping[selected_champ]
         champion = champions.get(champ_key, {})
         
-        # Calendar section
+        # Simplified usage stats
         if champion and not metrics_df.empty:
             st.title("📅 Device Usage Stats")
-            user_id = champion['user_id']
-            
             try:
-                # Get user's date info from metrics_df
-                user_data = metrics_df[metrics_df['Id'] == user_id].iloc[0]
-                first_date = pd.to_datetime(user_data['FirstDate'])
-                last_date = pd.to_datetime(user_data['LastDate'])
-                usage_days = user_data['UsageDays']
-                
-                # Date range display
-                st.write(f"**Tracking Period:**")
-                st.caption(f"{first_date.strftime('%b %d, %Y')} - {last_date.strftime('%b %d, %Y')}")
-                
-                # Usage metrics
+                user_data = metrics_df[metrics_df['Id'] == champion['user_id']].iloc[0]
                 st.metric("Total Tracked Days", 
-                             f"{usage_days} days",
-                             help="Days with recorded activity")
-                
+                         f"{int(user_data['UsageDays'])} days",  
+                         help="Days with recorded activity.")
             except Exception as e:
-                st.error(f"Couldn't load calendar data: {str(e)}")
+                st.error(f"Couldn't load data: {str(e)}")
 
     # --------------------------
     # Main Content
-    # --------------------------
     if not champion:
         st.warning("No champion data available")
         return
     
-    # Champion header
+    # Get selected user ID
+    user_id = champion['user_id']
+    
+# =================================================================
+# STEP 1: FETCH INDIVIDUAL USER'S DAILY DATA (UPDATED)
+# =================================================================
+    # FETCH INDIVIDUAL USER'S DAILY DATA
+    try:
+        conn = connect_db(DB_PATH)
+        
+        # Get daily activity data
+        champ_query = f"""
+            SELECT ActivityDate, TotalSteps, TotalDistance, Calories, 
+                VeryActiveMinutes, SedentaryMinutes
+            FROM daily_activity
+            WHERE Id = {user_id}
+            ORDER BY ActivityDate
+        """
+        champ_daily_df = pd.read_sql(champ_query, conn)
+
+        # Get sleep data - count sleep minutes (value=1) per date
+        champ_sleep_query = f"""
+            SELECT 
+                date AS ActivityDate,  -- Rename to match activity data
+                COUNT(*) AS TotalRestfulSleep
+            FROM minute_sleep
+            WHERE Id = {user_id} AND value = 1
+            GROUP BY date  -- Correct grouping by actual date column
+            ORDER BY date
+        """
+        champ_sleep_df = pd.read_sql(champ_sleep_query, conn)
+
+        # Merge activity and sleep data
+        champ_daily_df = pd.merge(
+            champ_daily_df,
+            champ_sleep_df,
+            on="ActivityDate",
+            how="left"  # Keep all activity dates even with no sleep data
+        )
+
+        # Convert date and handle missing sleep data
+        champ_daily_df['ActivityDate'] = pd.to_datetime(champ_daily_df['ActivityDate'], format='%m/%d/%Y')
+        champ_daily_df['TotalRestfulSleep'] = champ_daily_df['TotalRestfulSleep'].fillna(0).astype(int)
+
+        # Convert numeric columns
+        numeric_cols = ['TotalSteps', 'TotalDistance', 'Calories', 
+                    'VeryActiveMinutes', 'SedentaryMinutes']
+        champ_daily_df[numeric_cols] = champ_daily_df[numeric_cols].apply(pd.to_numeric, errors='coerce')
+        
+        conn.close()
+    except Exception as e:
+        st.error(f"Failed to load user data: {str(e)}")
+        st.stop()
+
+    # Champion Header & Metrics 
     display_titles = {
         "steps_champion": "👟 Step Master",
         "distance_champion": "🏃 Distance Champion",
@@ -178,55 +219,45 @@ def leaderboard_page(metrics_df, champions):
         "calories_burned_champion": "🔥 Calorie Burner",
         "sleep_quality_champion": "💤 Sleep Champion"
     }
-    st.subheader(f"{display_titles[champ_key]}: User {champion['user_id']}")
+    st.subheader(f"{display_titles[champ_key]}: User {user_id}")
     
     # Metrics columns
     if not metrics_df.empty and 'Id' in metrics_df.columns:
-        champ_metrics = metrics_df[metrics_df['Id'] == champion['user_id']].iloc[0]
+        champ_metrics = metrics_df[metrics_df['Id'] == user_id].iloc[0]
         cols = st.columns(5)
         
         metric_config = {
-            'TotalSteps': ("Steps", "{:,}", "Total number of steps taken."),
+            'TotalSteps': ("Steps", "{:,.0f}", "Total number of steps taken."),
             'TotalDistance': ("Distance", "{:.2f} km", "Total kilometers tracked."),
-            'TotalCalories': ("Calories", "{:,} kcal", "Total estimated energy expenditure (in kilocalories)."),
-            'AverageIntensity': ("Intensity", "{:.1f}", "Average intensity state exhibited during that hour "
-                     "(TotalIntensity for that ActivityHour divided by 60)."),
-            'TotalRestfulSleep': ("Sleep", "{:,} mins", "Total number of minutes classified as being "
-                          "“asleep” sum total of light, deep, and REM sleep).")
+            'TotalCalories': ("Calories", "{:,.0f} kcal", "Total estimated energy expenditure."),
+            'AverageIntensity': ("Intensity", "{:.1f}", "Average intensity state during active hours."),
+            'TotalRestfulSleep': ("Sleep", "{:,.0f} mins", "Total minutes classified as asleep.")
         }
         
         for col, (metric, (title, fmt, help_txt)) in zip(cols, metric_config.items()):
             with col:
                 value = fmt.format(champ_metrics[metric]) if metric in champ_metrics else "N/A"
                 st.metric(title, value, help=help_txt)
-    
+
+    # =================================================================
     # Visualization Tabs
-    tab1, tab2, tab3 = st.tabs(["Distance Analysis", "Activity Metrics", "Sleep Patterns"])
+    tab1, tab2, tab3 = st.tabs(["Analysis 1", "Analysis 2", "Analysis 3"])
     
     with tab1:
-        if not metrics_df.empty:
-            st.subheader("Distance Distribution")
-            st.bar_chart(metrics_df.set_index('Id')['TotalDistance'])
-    
-    with tab2:
-        if not metrics_df.empty:
-            st.subheader("Activity Metrics Comparison")
-            fig, ax = plt.subplots(figsize=(10, 4))
-            metrics_df[['VeryActiveMinutes', 'AverageIntensity']].plot(kind='bar', ax=ax)
-            st.pyplot(fig)
-    
-    with tab3:
-        if 'TotalRestfulSleep' in metrics_df.columns:
-            st.subheader("Sleep Quality Analysis")
-            st.area_chart(metrics_df.set_index('Id')['TotalRestfulSleep'])
-        else:
-            st.info("No sleep data available")
+        st.subheader("📈 Step-Distance Relationship")
+        plot_step_distance_relationship(champ_daily_df, user_id)
+
+    with tab2:  
+        st.subheader("🔥 Calories vs. Active Minutes") 
+        plot_calories_vs_activity(champ_daily_df, user_id)
+
+    with tab3:  
+        st.subheader("💤 Sleep Quality Distribution")
+        plot_sleep_distribution(champ_daily_df, user_id)
 
 # --------------------------
 # Individual User Statistics
 # --------------------------
-
-
 
 # --------------------------
 # Navigation logic

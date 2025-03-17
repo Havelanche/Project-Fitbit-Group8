@@ -441,7 +441,7 @@ def analyze_weight_log(connection):
 
 # lala's leaderboard dataframe funtion
 def compute_leader_metrics(connection):
-    """Calculate comprehensive user metrics and identify top performers"""
+
     # Query for daily activity metrics
     daily_query = """
         SELECT 
@@ -476,12 +476,10 @@ def compute_leader_metrics(connection):
     """
     df_sleep = SQL_acquisition(connection, sleep_query)
     
-    # Date range query
+        # Revised date query (no SQL-side date manipulation)
     date_query = """
         SELECT 
-            Id,
-            MIN(ActivityDate) AS FirstDate,
-            MAX(ActivityDate) AS LastDate,
+            CAST(Id AS INTEGER) AS Id,
             COUNT(DISTINCT ActivityDate) AS UsageDays
         FROM daily_activity
         GROUP BY Id
@@ -491,23 +489,17 @@ def compute_leader_metrics(connection):
     # Initialize merged_df with daily data
     merged_df = df_daily.copy()
 
-    # Convert all IDs to integers
-    for df in [merged_df, df_hourly, df_sleep, df_dates]:
-        if not df.empty and 'Id' in df.columns:
-            df['Id'] = df['Id'].astype(str).str.split('.').str[0].astype(int)
-
-    # Merge all dataframes
+    # Merge all dataframes (remove date range columns)
     merge_order = [df_hourly, df_sleep, df_dates]
     for df in merge_order:
         if not df.empty and 'Id' in df.columns:
             merged_df = pd.merge(
-                merged_df,
-                df,
-                on="Id",
-                how="left",
-                validate="one_to_one"
-            )
-
+                merged_df, df, on="Id", how="left", validate="one_to_one")
+    
+    # After merging dataframes:
+    if 'UsageDays' in merged_df.columns:
+        merged_df['UsageDays'] = merged_df['UsageDays'].astype(int)  # Force integer type
+    
     # Clean data
     merged_df = merged_df.fillna(0).replace([np.inf, -np.inf], 0)
     champions = {}
