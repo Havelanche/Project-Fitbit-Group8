@@ -1,130 +1,72 @@
-# Project Fitbit Group 8
+# Fitbit Data Analysis Project
 
-## Project Description
+## Project Overview
+This project analyzes Fitbit data collected from 33 respondents in an Amazon survey (2016). The study involves statistical analysis, data visualization, and the development of a Streamlit dashboard to explore insights from the dataset.
 
-This project analyzes Fitbit data using Python and SQL. It provides various functions for data processing, visualization, and validation to understand user activity patterns.
+## Project Objectives
+1. **Data Cleaning & Exploration**:
+   - Count unique users and compute total distances.
+   - Visualize daily calorie burns with date filters.
+   - Analyze workout frequency by day of the week.
+2. **Statistical Analysis & Regression Models**:
+   - Investigate the relationship between steps taken and calories burned.
+   - Perform regression analysis to estimate calorie burn.
+   - Explore correlations between sleep duration and activity levels.
+3. **Database Interaction**:
+   - Categorize users as Light, Moderate, or Heavy users based on Fitbit activity.
+   - Execute SQL queries to analyze sleep patterns, active minutes, and heart rate.
+4. **Data Visualization & Insights**:
+   - Create bar plots of steps, calories, and sleep duration per time block.
+   - Investigate the impact of weather conditions on activity.
+5. **Dashboard Development**:
+   - Implement a **Streamlit dashboard** to interactively explore the data.
+   - Provide individual user statistics, time-based filtering, and sleep analysis.
 
-## Installation
-
-To run this project, install the required dependencies:
-
+## Installation & Setup
+### Prerequisites
+Ensure you have **Python 3.8+** installed & imported along with the following dependencies:
 ```bash
-pip install numpy pandas matplotlib seaborn statsmodels sqlite3
+os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
+```
+### Opening Files in Visual Studio Code
+**Open your terminal and navigate to the project directory**.
+**Make sure doing cd in orders !!!! e.g. You put the cloned file on desktop: desktop--> fitbit project--> src**
+```bash
+cd path/to/your/project
+```
+**until**
+```bash
+ls
+```
+**terminal shows the**
+```bash 
+Readme.md     data    src
+```
+**then goes to**
+```bash
+cd src
+```
+Now you are at the right folder!
+### Running the Analysis
+To execute the analysis and generate visualizations, run:
+```bash
+python fitbit-main.py
+```
+### Running the Dashboard
+To start the **Streamlit dashboard**, execute:
+```bash
+streamlit run dashboard.py
 ```
 
-## Usage
+## Features of the Dashboard
+- **General Statistics**: Overview of Fitbit users' activity levels.
+- **User-Specific Analysis**: Select an individual to view their fitness trends.
+- **Time-Based Filtering**: Filter data by date range or time of day.
+- **Sleep & Activity Correlation**: Explore how sleep patterns relate to daily activity.
+- **Visual Insights**: Interactive graphs to analyze step count, heart rate, and calorie burn.
 
-### 1. Load Data
 
-```python
-load_data(filename)
-```
 
-**Description:** Converts a CSV file into a Pandas DataFrame for analysis.\
-**Parameters:**
-
-- `filename` *(str)*: The path to the CSV file.\
-  **Returns:**
-- A DataFrame containing the loaded data.
-
-### 2. Get Unique Users
-
-```python
-get_unique_users(df, column_name)
-```
-
-**Description:** Finds distinct user IDs and aggregates data (e.g., Total Steps, Total Distance).\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset to analyze.
-- `column_name` *(str)*: The column to sum up for each user.\
-  **Returns:**
-- A DataFrame of unique users with aggregated data.
-
-### 3. Plot Distance Distribution
-
-```python
-plot_distance_distribution(unique_users)
-```
-
-**Description:** Plots a histogram showing the distribution of total distances run by users.\
-**Parameters:**
-
-- `unique_users` *(DataFrame)*: The DataFrame returned by `get_unique_users()`.
-
-### 4. Calories Burned Per Day
-
-```python
-calories_burned_per_day(df, user_id, start_date=None, end_date=None)
-```
-
-**Description:** Plots a user's daily calorie burn over a specified time range.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
-- `user_id` *(int)*: The user ID to analyze.
-- `start_date` *(str, optional)*: Start date (format: YYYY-MM-DD).
-- `end_date` *(str, optional)*: End date (format: YYYY-MM-DD).
-
-### 5. Plot Weekly Workout Distribution
-
-```python
-plot_workout(df)
-```
-
-**Description:** Visualizes workout frequency across weekdays using a bar chart.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
-
-### 6. Plot Linear Regression Model
-
-```python
-plot_LRM(df, user_id)
-```
-
-**Description:** Creates a regression plot showing the relationship between total steps and calories burned.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
-- `user_id` *(int)*: The user ID to analyze.
-
-### 7. Classify Users
-
-```python
-classify_user(df)
-```
-
-**Description:** Categorizes users into 'Light', 'Moderate', or 'Heavy' based on activity frequency.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.\
-  **Returns:**
-- A DataFrame with user classifications.
-
-### 8. SQL Data Acquisition
-
-```python
-SQL_acquisition(query)
-```
-
-**Description:** Runs an SQL query and returns the result as a Pandas DataFrame.\
-**Parameters:**
-
-- `query` *(str)*: SQL query string.\
-  **Returns:**
-- A DataFrame with query results.
-
-### 9. Verify Total Steps
-
-```python
-verify_total_steps(df)
-```
-
-**Description:** Compares total steps recorded in the CSV file and database to check for discrepancies.\
-**Parameters:**
-
-- `df` *(DataFrame)*: The dataset.
 
 ## Contributors
 

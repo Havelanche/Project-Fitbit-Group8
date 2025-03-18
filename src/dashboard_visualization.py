@@ -1,7 +1,9 @@
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
 import streamlit as st
+
 
 def plot_step_distance_relationship(champ_daily_df):
     if champ_daily_df.empty:

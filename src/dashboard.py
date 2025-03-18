@@ -30,6 +30,13 @@ except Exception as e:
     st.error(f"Failed to load data: {str(e)}")
     st.stop()
 
+
+# --------------------------
+# Ensure session state is set
+# --------------------------
+if "page" not in st.session_state:
+    st.session_state.page = "Home"
+
 # --------------------------
 # Homepage setup
 page = st.sidebar.radio("Navigation", ["Home", "Activity Overview", "Top Users", "Individual User"])
@@ -40,7 +47,7 @@ if page == "Home":
 
     with col1:
         if st.button("Activity Overview", key="activity", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
-            st.session_state.page = "activity"
+            st.session_state.page = "Activity Overview"
 
     with col2:
         if st.button("Leaderboard", key="top-users", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/trophy:"):
@@ -48,8 +55,55 @@ if page == "Home":
 
     with col3:
         if st.button("Personal Stats", key="user-insights", help="Search for a user to view their specific stats", use_container_width=True, icon=":material/account_circle:"):
-            st.session_state.page = "user-insights"
+            st.session_state.page = "User Insights"
             
+    # --------------------------
+    # Informative Section Below Buttons
+    # --------------------------
+    st.markdown("---")
+    st.markdown("### About This Dashboard")
+    st.markdown("""
+    The dashboard presents visualizations and analysis of Fitbit fitness and health tracking data collected from **MM DD, 2016 to 12 April, 2016**.
+
+    This dashboard explores relationships between fitness and health metrics, it not only states data summaries but aims to present data purposefully.
+
+    The Fitbit app and Fitbit Premium subscription service form an integrated health platform. The Fitbit app collects data from Fitbit’s wearables, providing metrics on **physical activity, sleep, heart rate, and nutrition**. Fitbit Premium enhances the user experience with **personalized health reports and advanced insights**.
+    """)
+
+    # --------------------------
+    # Footer Section with Name
+    # --------------------------
+    st.markdown("---")
+    st.markdown("<p style='text-align: center; font-size: 16px;'>📌 Developed by Students at VU</p>", unsafe_allow_html=True)
+
+# --------------------------
+# Sidebar Navigation
+# --------------------------
+def setup_sidebar():
+    """Sidebar Navigation using Radio Buttons for Stability"""
+    with st.sidebar:
+        st.markdown("## Navigation")
+
+        pages = {
+            "Home": "Home",
+            "Activity Overview": "Activity Overview",
+            "Leaderboard": "Leaderboard",
+            "User Insights": "Personal Stats"
+        }
+
+        # Use radio buttons for stable navigation
+        selected_page = st.radio(
+            "Go to:",
+            options=list(pages.keys()),
+            format_func=lambda x: pages[x],  # Display formatted text with emojis
+            index=list(pages.keys()).index(st.session_state.page)  # Keep current selection
+        )
+
+        # Update session state only if selection changes
+        if selected_page != st.session_state.page:
+            st.session_state.page = selected_page
+            st.rerun()  # Efficient page switch
+
 # --------------------------
 # Activity Overview Page
 def show_activity_overview(merged_df):
@@ -315,7 +369,7 @@ def leaderboard_page(metrics_df, champions):
 # --------------------------
 # Navigation logic
 if 'page' not in st.session_state:
-    st.session_state.page = "home"
+    st.session_state.page = "Home"
 
 if st.session_state.page == "activity":
     show_activity_overview(merged_df)
