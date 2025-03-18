@@ -1,8 +1,5 @@
 # Fitbit Data Analysis Project
 
-## Project Overview
-This project analyzes Fitbit data collected from **33 respondents** in an Amazon survey (2016). The study involves statistical analysis, data visualization, and the development of a **Streamlit dashboard** to explore insights from the dataset.
-
 ## Dataset
 The dataset consists of multiple CSV files and an SQLite database containing the following tables:
 - **daily_activity**: Daily statistics on steps, distance, and calories burnt.
