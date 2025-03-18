@@ -48,7 +48,7 @@ def plot_calories_vs_activity(champ_daily_df):
     fig.add_trace(go.Bar(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["VeryActiveMinutes"],
-        name="Active Minutes",
+        name="Very Active Minutes",
         marker_color="green"
     ))
     # Calories (Line)
@@ -62,9 +62,9 @@ def plot_calories_vs_activity(champ_daily_df):
     ))
     # Layout
     fig.update_layout(
-        title=f"Calories vs. Activity",
+        title=f"Calories vs. Very Active Minute",
         xaxis=dict(title="Dates", showticklabels=False),
-        yaxis=dict(title="Active Minutes", side="left"),
+        yaxis=dict(title="Very Active Minutes", side="left"),
         yaxis2=dict(title="Calories (kcal)", side="right", overlaying="y"),
         hovermode="x unified"
     )

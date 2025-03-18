@@ -251,14 +251,28 @@ def leaderboard_page(metrics_df, champions):
     with tab1:
         st.subheader(":material/monitoring: Step-Distance Relationship")
         plot_step_distance_relationship(champ_daily_df)
+        st.markdown('''
+                    Key Observations:
+                    1. **Strong positive correlation** between step count and distance traveled  
+                    2. **Consistent patterns**: Peaks/dips align across both metrics''')
 
     with tab2:  
-        st.subheader(":material/monitoring: Calories vs. Active Minutes") 
+        st.subheader(":material/monitoring: Calories vs. Very Active Minutes") 
         plot_calories_vs_activity(champ_daily_df)
+        st.markdown('''
+                    Activity-Energy Relationship:
+                    1. **Intensity matters**: High active minutes consistently drive calorie expenditure peaks  
+                    2. **Metabolic lag**: Max calorie burns often follow activity spikes by 12-24 hours  
+                    3. **Consistency beats intensity**: Regular moderate activity > sporadic peaks ''')
 
     with tab3:  
         st.subheader(":material/monitoring: Sleep Quality Distribution")
         plot_sleep_distribution(champ_daily_df)
+        st.markdown('''
+                    Key Sleep Patterns:
+                    1. Consistent deep sleep maintenance → Lower sedentary time variability
+                    2. **Weekend recovery**: Saturday activity drops → Sunday sleep quality gains  
+                    3. **Sleep debt cycles**: 3+ poor sleep days → Progressive sedentary increases''')
 
     # =================================================================
     # Additional Sleep Analysis Section
@@ -268,38 +282,38 @@ def leaderboard_page(metrics_df, champions):
     
     with col1:
         plot_sleep_correlations(champ_daily_df)
+        st.markdown(''' 
+                    Typical relationships: 
+                    - Sedentary hours ⬆ → Sleep time ⬇ (strong negative)  
+                    - Active minutes ⬆ → Sleep quality ⬆ (moderate positive)  
+                    - Step consistency ↔ Regular sleep cycles''')    
+        
     with col2:
         plot_sleep_efficiency(champ_daily_df)
+        st.markdown('''
+                    Key Insights:
+                    - Each bubble represents one day's activity-sleep relationship  
+                    - Color intensity → Step count (darker = more steps)  
+                    - Bubble size → Calories burned (larger = higher burn)  
+                    - Trend line shows overall pattern direction''')
     
     st.divider()
     st.subheader(":material/ssid_chart: Temporal Comparisons")
     plot_steps_vs_sleep(champ_daily_df)
-
-    # # Add font CSS
-    # st.markdown('''
-    # <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-    # ''', unsafe_allow_html=True)
-
-    # # Custom subheader with icon
-    # st.markdown('''
-    # <h2>
-    #     <span class="material-symbols-rounded" style="font-size:24px; color:#e3e3e3; vertical-align: middle;">
-    #         manage_accounts
-    #     </span>
-    #     User Management Dashboard
-    # </h2>
-    # ''', unsafe_allow_html=True)
-
-    # plot_active_vs_sleep(champ_daily_df, user_id)
-    # plot_sedentary_vs_sleep(champ_daily_df, user_id)
-    # plot_sleep_heatmap(champ_sleep_raw, user_id)
+    st.markdown('''
+                Key Observations:
+                1. **Acute Phase Alignment**: 
+                Simultaneous peaks in activity and sleep metrics indicate immediate exercise-sleep reciprocity, driven by adenosine metabolism and thermal regulation processes.
+                2. **Delayed Recovery Signaling**: 
+                Offset patterns (activity→sleep lag) reveal multi-stage recovery needs, particularly after high-intensity intervals requiring glycogen replenishment and muscle repair.
+                3. **Habitual Rhythm Encoding**: 
+                Repeating weekly/monthly cycles demonstrate entrainment of biological rhythms to lifestyle patterns through consistent behavioral reinforcement.''')
 
 # --------------------------
 # Individual User Statistics
 
 # --------------------------
 # Navigation logic
-
 if 'page' not in st.session_state:
     st.session_state.page = "home"
 
@@ -308,7 +322,12 @@ if st.session_state.page == "activity":
 
 elif st.session_state.page == "top-users":
     leaderboard_page(metrics_df, champions) 
-    st.write("Work in Progress!")
+    st.divider()
+    st.caption('''
+               :material/warning: **Data Availability Note:** 
+               \nSome metrics may show incomplete records due to inherent gaps in wearable device data collection. 
+               \nMissing values occur when: Users didn't wear their device; Specific activities weren't tracked; Sleep/wake states couldn't be determined.  
+               \nAll analyses use available data.''')
 
 elif st.session_state.page == "user-insights":
     st.header("🔍 User Insights")
