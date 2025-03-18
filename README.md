@@ -44,20 +44,20 @@ os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats
 ```bash
 cd path/to/your/project
 ```
-until
+**until**
 ```bash
 ls
 ```
-shows the 
+**shows the**
 ```bash 
 Readme.md     data    src
 ```
-then goes to 
+**then goes to**
 ```bash
 cd src
 ```
 Now you are at the right folder!
-Make sure doing cd in orders !!!! e.g. desktop--> fitbit project--> src
+**Make sure doing cd in orders !!!! e.g. desktop--> fitbit project--> src**
 ### Running the Analysis
 To execute the analysis and generate visualizations, run:
 ```bash
