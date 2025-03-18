@@ -39,6 +39,24 @@ Ensure you have **Python 3.8+** installed & imported along with the following de
 ```bash
 os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
 ```
+### Opening Files in Visual Studio Code
+**Open your terminal and navigate to the project directory**
+```bash
+cd path/to/your/project
+```
+until
+```bash
+ls
+```
+shows the 
+```bash 
+Readme.md     data    src
+```
+then goes to 
+```bash
+cd src
+```
+
 ### Running the Analysis
 To execute the analysis and generate visualizations, run:
 ```bash
