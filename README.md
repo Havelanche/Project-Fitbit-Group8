@@ -38,7 +38,7 @@ os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats
 ### Running the Analysis
 To execute the analysis and generate visualizations, run:
 ```bash
-python fitbit_analysis.py
+python fitbit-main.py
 ```
 ### Running the Dashboard
 To start the **Streamlit dashboard**, execute:
