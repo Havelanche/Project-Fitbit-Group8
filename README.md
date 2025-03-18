@@ -3,17 +3,6 @@
 ## Project Overview
 This project analyzes Fitbit data collected from 33 respondents in an Amazon survey (2016). The study involves statistical analysis, data visualization, and the development of a Streamlit dashboard to explore insights from the dataset.
 
-
-## Dataset
-The dataset consists of multiple CSV files and an SQLite database containing the following tables:
-- **daily_activity**: Daily statistics on steps, distance, and calories burnt.
-- **heart_rate**: Heart rate measurements taken every 5 seconds.
-- **hourly_calories**: Calories burned per hour.
-- **hourly_intensity**: Exercise intensity per hour.
-- **hourly_steps**: Steps taken per hour.
-- **minute_sleep**: Sleep duration logs.
-- **weight_log**: Weight, BMI, and fat percentage logs.
-
 ## Project Objectives
 1. **Data Cleaning & Exploration**:
    - Count unique users and compute total distances.
