@@ -36,7 +36,7 @@ The dataset consists of multiple CSV files and an SQLite database containing the
 ### Prerequisites
 Ensure you have **Python 3.8+** installed along with the following dependencies:
 ```bash
-pip install pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit
+os pip install pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit
 ```
 ### Running the Analysis
 To execute the analysis and generate visualizations, run:
