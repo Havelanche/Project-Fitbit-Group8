@@ -102,11 +102,12 @@ def distance_days_correlation(unique_user_distance, user_activity_days):
 
 def SQL_acquisition(connection, query):
     try:
-        cursor = connection.cursor()
-        cursor.execute(query)
-        rows = cursor.fetchall()
-        df = pd.DataFrame(rows, columns=[x[0] for x in cursor.description])
-        return df
+         with connection:
+            cursor = connection.cursor()
+            cursor.execute(query)
+            rows = cursor.fetchall()
+            df = pd.DataFrame(rows, columns=[x[0] for x in cursor.description])
+            return df
     except Exception as e:
         print(f"An error occurred while executing the SQL query: {e}")
         return pd.DataFrame()
@@ -354,54 +355,83 @@ def aggregate_data(df, raw_data=None, group_by='Id'):
 # Task 9: Analyzing and merge data
 def merge_and_analyze_data(connection):
     try:
-        daily_activity = SQL_acquisition(connection, "SELECT Id, ActivityDate, TotalSteps, Calories, SedentaryMinutes FROM daily_activity")
-        minute_sleep = SQL_acquisition(connection, "SELECT Id, date, value AS SleepMinutes FROM minute_sleep")
-        weight_log = SQL_acquisition(connection, "SELECT Id, Date, WeightKg, BMI FROM weight_log")
+        # Load all relevant tables
+        daily_activity = SQL_acquisition(connection, 
+            "SELECT Id, ActivityDate, TotalSteps, TotalDistance, Calories, "
+            "SedentaryMinutes, VeryActiveMinutes, FairlyActiveMinutes, LightlyActiveMinutes "
+            "FROM daily_activity")
 
-        # Convert dates to datetime (strip time for weight_log and minute_sleep)
+        heart_rate = SQL_acquisition(connection, 
+            "SELECT Id, Time AS ActivityDate, Value AS HeartRate FROM heart_rate")
+
+        hourly_calories = SQL_acquisition(connection, 
+            "SELECT Id, ActivityHour AS ActivityDate, Calories AS HourlyCalories FROM hourly_calories")
+
+        hourly_intensity = SQL_acquisition(connection, 
+            "SELECT Id, ActivityHour AS ActivityDate, TotalIntensity, AverageIntensity FROM hourly_intensity")
+
+        hourly_steps = SQL_acquisition(connection, 
+            "SELECT Id, ActivityHour AS ActivityDate, StepTotal FROM hourly_steps")
+
+        minute_sleep = SQL_acquisition(connection, 
+            "SELECT Id, date AS ActivityDate, value AS SleepMinutes FROM minute_sleep")
+
+        weight_log = SQL_acquisition(connection, 
+            "SELECT Id, Date AS ActivityDate, WeightKg, BMI FROM weight_log")
+
         daily_activity['ActivityDate'] = pd.to_datetime(daily_activity['ActivityDate'], format='%m/%d/%Y', errors='coerce')
-        minute_sleep['ActivityDate'] = pd.to_datetime(minute_sleep['date'].str.split().str[0], format='%m/%d/%Y', errors='coerce')
-        weight_log['ActivityDate'] = pd.to_datetime(weight_log['Date'].str.split().str[0], format='%m/%d/%Y', errors='coerce')
+        heart_rate['ActivityDate'] = pd.to_datetime(heart_rate['ActivityDate'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
+        hourly_calories['ActivityDate'] = pd.to_datetime(hourly_calories['ActivityDate'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
+        hourly_intensity['ActivityDate'] = pd.to_datetime(hourly_intensity['ActivityDate'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
+        hourly_steps['ActivityDate'] = pd.to_datetime(hourly_steps['ActivityDate'], format='%m/%d/%Y %I:%M:%S %p', errors='coerce')
+        minute_sleep['ActivityDate'] = pd.to_datetime(minute_sleep['ActivityDate'].str.split().str[0], format='%m/%d/%Y', errors='coerce')
+        weight_log['ActivityDate'] = pd.to_datetime(weight_log['ActivityDate'].str.split().str[0], format='%m/%d/%Y', errors='coerce')
 
-        # Aggregate sleep minutes by Id and ActivityDate
         minute_sleep = minute_sleep.groupby(['Id', 'ActivityDate']).agg({'SleepMinutes': 'sum'}).reset_index()
+        merged_df = daily_activity.copy()
 
-        # Merge dataframes
-        merged_df = pd.merge(daily_activity, minute_sleep, on=['Id', 'ActivityDate'], how='left')
-        merged_df = pd.merge(merged_df, weight_log[['Id', 'ActivityDate', 'WeightKg', 'BMI']], on=['Id', 'ActivityDate'], how='left')
+        for df in [minute_sleep, weight_log, hourly_calories, hourly_intensity, hourly_steps, heart_rate]:
+            merged_df = pd.merge(merged_df, df, on=['Id', 'ActivityDate'], how='left')
 
-        print("Columns after merge:", merged_df.columns)
+        # print("Columns after merge:", merged_df.columns)
 
-        # Handle missing values
         merged_df['SleepMinutes'] = merged_df['SleepMinutes'].fillna(0)
         merged_df['WeightKg'] = merged_df['WeightKg'].fillna(merged_df['WeightKg'].median(skipna=True))
         merged_df['BMI'] = merged_df['BMI'].fillna(merged_df['BMI'].median(skipna=True))
+        merged_df['HeartRate'] = merged_df['HeartRate'].fillna(merged_df['HeartRate'].median(skipna=True))
+        merged_df['HourlyCalories'] = merged_df['HourlyCalories'].fillna(0)
+        merged_df['TotalIntensity'] = merged_df['TotalIntensity'].fillna(0)
+        merged_df['AverageIntensity'] = merged_df['AverageIntensity'].fillna(0)
+        merged_df['StepTotal'] = merged_df['StepTotal'].fillna(0)
 
-        # User-level summaries
+        numeric_cols = ['TotalSteps', 'Calories', 'SedentaryMinutes', 'VeryActiveMinutes', 
+                        'FairlyActiveMinutes', 'LightlyActiveMinutes', 'SleepMinutes', 
+                        'WeightKg', 'BMI', 'HeartRate', 'HourlyCalories', 
+                        'TotalIntensity', 'AverageIntensity', 'StepTotal']
+
+        merged_df[numeric_cols] = merged_df[numeric_cols].apply(pd.to_numeric, errors='coerce')
+
         user_summaries = merged_df.groupby('Id').agg({
             'TotalSteps': 'mean',
             'Calories': 'mean',
             'SedentaryMinutes': 'mean',
+            'VeryActiveMinutes': 'mean',
+            'FairlyActiveMinutes': 'mean',
+            'LightlyActiveMinutes': 'mean',
             'SleepMinutes': 'mean',
             'WeightKg': 'mean',
-            'BMI': 'mean'
+            'BMI': 'mean',
+            'HeartRate': 'mean',
+            'HourlyCalories': 'mean',
+            'TotalIntensity': 'mean',
+            'AverageIntensity': 'mean',
+            'StepTotal': 'mean'
         }).reset_index()
-
-        print("\nUser-Level Activity and Health Summaries (new merge):")
-        print(user_summaries)
-        plt.figure(figsize=(12, 10))
-        correlation_matrix = user_summaries.select_dtypes(include=[np.number]).corr()
-        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', center=0, 
-                    square=True, linewidths=0.5, cbar_kws={"shrink": .8})
-        plt.title('Correlation between User Metrics')
-        plt.tight_layout()
-        plt.show()
 
         return merged_df, user_summaries
 
     except Exception as e:
         print(f"Error in merge_and_analyze_data: {e}")
-        traceback.print_exc()
         return None, None
 
 #Task 10: weekdays
@@ -457,3 +487,88 @@ def analyze_weight_log(connection):
     print(weight_df.groupby('Id')[['WeightKg', 'Fat', 'BMI']].describe())
 
     return weight_df
+
+# lala's leaderboard dataframe funtion
+def compute_leader_metrics(connection):
+
+    # Query for daily activity metrics
+    daily_query = """
+        SELECT 
+            CAST(Id AS INTEGER) AS Id,
+            SUM(TotalDistance) AS TotalDistance,
+            SUM(TotalSteps) AS TotalSteps,
+            SUM(VeryActiveMinutes) AS VeryActiveMinutes,
+            SUM(Calories) AS TotalCalories
+        FROM daily_activity
+        GROUP BY Id
+    """
+    df_daily = SQL_acquisition(connection, daily_query)
+    
+    # Query for average intensity
+    hourly_query = """
+        SELECT 
+            CAST(Id AS INTEGER) AS Id,
+            AVG(TotalIntensity) AS AverageIntensity
+        FROM hourly_intensity
+        GROUP BY Id
+    """
+    df_hourly = SQL_acquisition(connection, hourly_query)
+    
+    # Query for restful sleep
+    sleep_query = """
+        SELECT 
+            CAST(Id AS INTEGER) AS Id,
+            COUNT(*) AS TotalRestfulSleep
+        FROM minute_sleep
+        WHERE value = 1
+        GROUP BY Id
+    """
+    df_sleep = SQL_acquisition(connection, sleep_query)
+    
+        # Revised date query (no SQL-side date manipulation)
+    date_query = """
+        SELECT 
+            CAST(Id AS INTEGER) AS Id,
+            COUNT(DISTINCT ActivityDate) AS UsageDays
+        FROM daily_activity
+        GROUP BY Id
+    """
+    df_dates = SQL_acquisition(connection, date_query)
+
+    # Initialize merged_df with daily data
+    merged_df = df_daily.copy()
+
+    # Merge all dataframes (remove date range columns)
+    merge_order = [df_hourly, df_sleep, df_dates]
+    for df in merge_order:
+        if not df.empty and 'Id' in df.columns:
+            merged_df = pd.merge(
+                merged_df, df, on="Id", how="left", validate="one_to_one")
+    
+    # After merging dataframes:
+    if 'UsageDays' in merged_df.columns:
+        merged_df['UsageDays'] = merged_df['UsageDays'].astype(int)  # Force integer type
+    
+    # Clean data
+    merged_df = merged_df.fillna(0).replace([np.inf, -np.inf], 0)
+    champions = {}
+    
+    if not merged_df.empty:
+        metrics_map = {
+            'steps_champion': 'TotalSteps',
+            'distance_champion': 'TotalDistance',
+            'active_minutes_champion': 'VeryActiveMinutes',
+            'calories_burned_champion': 'TotalCalories',
+            'average_intensity_champion': 'AverageIntensity',
+            'sleep_quality_champion': 'TotalRestfulSleep'
+        }
+        
+        for champion_name, col_name in metrics_map.items():
+            if col_name in merged_df.columns:
+                max_idx = merged_df[col_name].idxmax()
+                champions[champion_name] = {
+                    'user_id': merged_df.loc[max_idx, 'Id'],
+                    'value': merged_df.loc[max_idx, col_name]
+                }
+    
+    return merged_df, champions
