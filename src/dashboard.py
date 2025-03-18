@@ -1,9 +1,6 @@
 import os
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 
 from database import connect_db, get_unique_user_ids
 from dashboard_visualization import plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_sleep_efficiency, plot_steps_vs_sleep
@@ -46,7 +43,7 @@ if page == "Home":
             st.session_state.page = "activity"
 
     with col2:
-        if st.button("Leaderboard", key="top-users", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/stars:"):
+        if st.button("Leaderboard", key="top-users", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/trophy:"):
             st.session_state.page = "top-users"
 
     with col3:
@@ -106,28 +103,28 @@ def show_activity_overview(merged_df):
 # --------------------------
 # Leaderboard
 def leaderboard_page(metrics_df, champions):
-    st.header("🏆 User Leaderboard")
+    st.header(":material/trophy: Leaderboard")
     
     # --------------------------
     # Sidebar Section
     with st.sidebar:
-        st.title("🌟 Choose Your Champion")
+        st.title(":material/search: Choose Your Champion")
         
         # Champion selection radio buttons
         selected_champ = st.radio(
             "Select metric to highlight:", 
-            ["Step Count Leader", "Distance Covered Champion", 
-             "Active Minutes Record Holder", "Calorie Burn King/Queen", 
-             "Sleep Quality Master"]
+            ["Step Master", "Distance Champion", 
+             "Activity King/Queen", "Calorie Burner", 
+             "Sleep Master"]
         )
         
         # Map selection to champion keys
         champ_mapping = {
-            "Step Count Leader": "steps_champion",
-            "Distance Covered Champion": "distance_champion",
-            "Active Minutes Record Holder": "active_minutes_champion",
-            "Calorie Burn King/Queen": "calories_burned_champion",
-            "Sleep Quality Master": "sleep_quality_champion"
+            "Step Master": "steps_champion",
+            "Distance Champion": "distance_champion",
+            "Activity King/Queen": "active_minutes_champion",
+            "Calorie Burner": "calories_burned_champion",
+            "Sleep Master": "sleep_quality_champion"
         }
         
         # Get selected champion data
@@ -136,7 +133,7 @@ def leaderboard_page(metrics_df, champions):
         
         # Simplified usage stats
         if champion and not metrics_df.empty:
-            st.title("📅 Device Usage Stats")
+            st.title(":material/devices_wearables: Device Usage Stats")
             try:
                 user_data = metrics_df[metrics_df['Id'] == champion['user_id']].iloc[0]
                 st.metric("Total Tracked Days", 
@@ -221,11 +218,11 @@ def leaderboard_page(metrics_df, champions):
 
     # Champion Header & Metrics 
     display_titles = {
-        "steps_champion": "👟 Step Master",
-        "distance_champion": "🏃 Distance Champion",
-        "active_minutes_champion": "⚡ Activity King/Queen",
-        "calories_burned_champion": "🔥 Calorie Burner",
-        "sleep_quality_champion": "💤 Sleep Champion"
+        "steps_champion": ":material/steps: Step Master",
+        "distance_champion": ":material/distance: Distance Champion",
+        "active_minutes_champion": ":material/sprint: Activity King/Queen",
+        "calories_burned_champion": ":material/local_fire_department: Calorie Burner",
+        "sleep_quality_champion": ":material/sleep_score: Sleep Champion"
     }
     st.subheader(f"{display_titles[champ_key]}: User {user_id}")
     
@@ -252,21 +249,21 @@ def leaderboard_page(metrics_df, champions):
     tab1, tab2, tab3 = st.tabs(["Analysis 1", "Analysis 2", "Analysis 3"])
     
     with tab1:
-        st.subheader("📈 Step-Distance Relationship")
+        st.subheader(":material/monitoring: Step-Distance Relationship")
         plot_step_distance_relationship(champ_daily_df)
 
     with tab2:  
-        st.subheader("🔥 Calories vs. Active Minutes") 
+        st.subheader(":material/monitoring: Calories vs. Active Minutes") 
         plot_calories_vs_activity(champ_daily_df)
 
     with tab3:  
-        st.subheader("💤 Sleep Quality Distribution")
+        st.subheader(":material/monitoring: Sleep Quality Distribution")
         plot_sleep_distribution(champ_daily_df)
 
     # =================================================================
     # Additional Sleep Analysis Section
     st.divider()
-    st.subheader("🔍 Advanced Sleep Analysis")
+    st.subheader(":material/add_chart: Advanced Sleep Analysis")
     col1, col2 = st.columns(2)
     
     with col1:
@@ -275,10 +272,24 @@ def leaderboard_page(metrics_df, champions):
         plot_sleep_efficiency(champ_daily_df)
     
     st.divider()
-    st.subheader("Temporal Comparisons")
+    st.subheader(":material/ssid_chart: Temporal Comparisons")
     plot_steps_vs_sleep(champ_daily_df)
 
-    # st.subheader("🔍 Additional Insights on Sleep")
+    # # Add font CSS
+    # st.markdown('''
+    # <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+    # ''', unsafe_allow_html=True)
+
+    # # Custom subheader with icon
+    # st.markdown('''
+    # <h2>
+    #     <span class="material-symbols-rounded" style="font-size:24px; color:#e3e3e3; vertical-align: middle;">
+    #         manage_accounts
+    #     </span>
+    #     User Management Dashboard
+    # </h2>
+    # ''', unsafe_allow_html=True)
+
     # plot_active_vs_sleep(champ_daily_df, user_id)
     # plot_sedentary_vs_sleep(champ_daily_df, user_id)
     # plot_sleep_heatmap(champ_sleep_raw, user_id)
