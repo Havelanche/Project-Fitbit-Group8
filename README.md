@@ -56,7 +56,8 @@ then goes to
 ```bash
 cd src
 ```
-
+Now you are at the right folder!
+Make sure doing cd in orders !!!! e.g. desktop--> fitbit project--> src
 ### Running the Analysis
 To execute the analysis and generate visualizations, run:
 ```bash
