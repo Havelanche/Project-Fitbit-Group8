@@ -49,7 +49,7 @@ cd path/to/your/project
 ```bash
 ls
 ```
-**shows the**
+**terminal shows the**
 ```bash 
 Readme.md     data    src
 ```
