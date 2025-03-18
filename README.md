@@ -54,10 +54,6 @@ streamlit run dashboard.py
 - **Visual Insights**: Interactive graphs to analyze step count, heart rate, and calorie burn.
 
 
-## Deployment
-- The dashboard will be deployed on **Streamlit Cloud**.
-- To make the repository public, navigate to GitHub settings > Change visibility.
-- Once deployed, access the dashboard at: [Dashboard Link]
 
 
 ## Contributors
