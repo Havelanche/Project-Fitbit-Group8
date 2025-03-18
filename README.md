@@ -33,7 +33,7 @@ The dataset consists of multiple CSV files and an SQLite database containing the
 ### Prerequisites
 Ensure you have **Python 3.8+** installed along with the following dependencies:
 ```bash
-os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express
+os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
 ```
 ### Running the Analysis
 To execute the analysis and generate visualizations, run:
