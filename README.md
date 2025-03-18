@@ -31,7 +31,7 @@ The dataset consists of multiple CSV files and an SQLite database containing the
 
 ## Installation & Setup
 ### Prerequisites
-Ensure you have **Python 3.8+** installed along with the following dependencies:
+Ensure you have **Python 3.8+** installed & imported along with the following dependencies:
 ```bash
 os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
 ```
