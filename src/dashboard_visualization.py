@@ -64,3 +64,41 @@ def plot_sleep_patterns(data, user_id):
     )
     fig.update_layout(yaxis_range=[0, 12])
     return fig
+
+def plot_individual_steps_calories(user_df):
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    
+    # Add steps trace (primary y-axis)
+    fig.add_trace(
+        go.Scatter(
+            x=user_df['ActivityDate'],
+            y=user_df['TotalSteps'],
+            name="Steps",
+            line=dict(color="blue")
+        ),
+        secondary_y=False
+    )
+    
+    # Add calories trace (secondary y-axis)
+    fig.add_trace(
+        go.Scatter(
+            x=user_df['ActivityDate'],
+            y=user_df['Calories'],
+            name="Calories",
+            line=dict(color="red")
+        ),
+        secondary_y=True
+    )
+    
+    # Set titles
+    fig.update_layout(
+        title_text="Daily Steps and Calories Burned",
+        xaxis_title="Date"
+    )
+    
+    # Set y-axes titles
+    fig.update_yaxes(title_text="Steps", secondary_y=False)
+    fig.update_yaxes(title_text="Calories", secondary_y=True)
+    
+    # Display the combined chart
+    st.plotly_chart(fig, use_container_width=True)
