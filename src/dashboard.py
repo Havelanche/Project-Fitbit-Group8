@@ -3,7 +3,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from database import connect_db, get_unique_user_ids
-from dashboard_visualization import plot_heart_rate, plot_activity_summary, plot_sleep_patterns
+from dashboard_visualization import plot_heart_rate, plot_activity_summary, plot_individual_steps_calories
 from analysis import SQL_acquisition, merge_and_analyze_data
 
 
@@ -105,155 +105,88 @@ def show_activity_overview(merged_df):
 # Top Users
 # --------------------------
 
-
 # --------------------------
 # Individual User Statistics
 # --------------------------
 
-# --------------------------
-# Sidebar - User Selection and Date Filter
-# --------------------------
-# st.sidebar.title("🔍 Filters")
+def individual_users():
+    st.header("🏃‍➡️ Individual User")
+    st.sidebar.subheader("Filter Options")
 
-# if merged_df is not None:
-#     user_ids = merged_df['Id'].unique().tolist()
-#     selected_user = st.sidebar.selectbox("Select User ID:", user_ids)
+    # Clean up user IDs by removing decimals
+    user_ids = merged_df['Id'].unique().tolist()
+    clean_user_ids = [int(user_id) for user_id in user_ids]
+    selected_user_clean = st.sidebar.selectbox("Select User ID:", sorted(clean_user_ids))
+    selected_user = float(selected_user_clean)
+    
+    # 1. Dynamic date range based on selected user
+    # First filter by user to get their specific date range
+    user_specific_df = merged_df[merged_df['Id'] == selected_user]
+    if not user_specific_df.empty:
+        user_min_date = pd.to_datetime(user_specific_df['ActivityDate']).min().date()
+        user_max_date = pd.to_datetime(user_specific_df['ActivityDate']).max().date()
+    else:
+        # Fallback to overall min/max if no data for selected user
+        user_min_date = pd.to_datetime(merged_df['ActivityDate']).min().date()
+        user_max_date = pd.to_datetime(merged_df['ActivityDate']).max().date()
+    
+    # Date range selection with user-specific limits
+    
+    date_range = st.sidebar.date_input(
+        "Select Date Range:",
+        [user_min_date, user_max_date],
+        min_value=user_min_date,
+        max_value=user_max_date,
+        key="activity_date_range"
+        )
 
-#     date_range = st.sidebar.date_input(
-#         "Select Date Range:",
-#         [pd.to_datetime(merged_df['ActivityDate'].min()), pd.to_datetime(merged_df['ActivityDate'].max())],
-#         pd.to_datetime(merged_df['ActivityDate'].min()),
-#         pd.to_datetime(merged_df['ActivityDate'].max())
-#     )
+    if st.sidebar.button("Select All Dates"):
+        date_range = [user_min_date, user_max_date]
 
-#     # Ensure ActivityDate is in datetime format
-#     merged_df['ActivityDate'] = pd.to_datetime(merged_df['ActivityDate'], errors='coerce')
-
-#     # Filter by user ID and date range
-#     filtered_df = merged_df[
-#         (merged_df['Id'] == selected_user) &
-#         (merged_df['ActivityDate'] >= pd.Timestamp(date_range[0])) &
-#         (merged_df['ActivityDate'] <= pd.Timestamp(date_range[1]))
-#     ]
-
-#     st.write("Filtered Data:", filtered_df)
-#     # --------------------------
-#     # Main Dashboard
-#     # --------------------------
-#     st.title("📊 Fitbit Dashboard")
-#     st.markdown("---")
-
-#     # General Statistics
-#     st.header("📈 General Statistics")
-#     col1, col2, col3 = st.columns(3)
-
-#     col1.metric("Total Steps", f"{filtered_df['TotalSteps'].sum():,.0f}")
-#     col2.metric("Average Sleep (hours)", f"{(filtered_df['SleepMinutes'].mean() / 60):.2f}")
-#     col3.metric("Avg Calories Burned", f"{filtered_df['Calories'].mean():,.0f}")
-
-#     # Graphical Summary
-#     st.subheader("Activity Over Time")
-#     fig = px.line(filtered_df, x='date', y=['TotalSteps', 'Calories'], title="Daily Steps & Calories")
-#     st.plotly_chart(fig, use_container_width=True)
-
-#     # Sleep Analysis
-#     st.header("💤 Sleep Analysis")
-#     sleep_fig = px.bar(filtered_df, x='date', y='SleepMinutes', title="Daily Sleep Duration (minutes)")
-#     st.plotly_chart(sleep_fig, use_container_width=True)
-
-#     # Weekend vs Weekday Analysis
-#     st.subheader("📅 Weekend vs Weekday Analysis")
-#     filtered_df['Weekend'] = filtered_df['DayOfWeek'].isin(['Saturday', 'Sunday'])
-#     weekend_df = filtered_df.groupby('Weekend').agg({
-#         'TotalSteps': 'mean',
-#         'SleepMinutes': 'mean'
-#     }).reset_index()
-
-#     weekend_fig = px.bar(weekend_df, x='Weekend', y=['TotalSteps', 'SleepMinutes'],
-#                          title="Average Steps and Sleep: Weekdays vs Weekends")
-#     st.plotly_chart(weekend_fig, use_container_width=True)
-
-#     st.caption("Fitbit Dashboard - Created with Streamlit 🚀")
-# else:
-#     st.error("No data available. Please check your database connection.")
-
-
-# # --------------------------
-# # Database Connection
-# # --------------------------
-# try:
-#     conn = connect_db(DB_PATH)
-# except Exception as e:
-#     st.error(f"### Database Connection Error ❌\n*Path:* {DB_PATH}\n*Error:* {str(e)}")
-#     st.stop()
-
-# # --------------------------
-# # User Selection
-# # --------------------------
-# try:
-#     user_ids = get_unique_user_ids(conn)
-#     selected_user = st.sidebar.selectbox("👤 Select User ID:", user_ids)
-# except Exception as e:
-#     st.sidebar.error(f"### User Loading Error ⚠\n`{str(e)}`")
-#     st.stop()
-
-# # --------------------------
-# # Dashboard Layout
-# # --------------------------
-# st.title("Fitbit Activity Dashboard")
-# st.markdown("---")
-
-# # Main content columns
-# col1, col2 = st.columns([3, 2])
-
-# # Heart Rate Analysis
-# with col1:
-#     st.header("❤ Heart Rate Analysis")
-#     try:
-#         heart_df = pd.read_sql_query(f"""
-#             SELECT datetime(Time) AS timestamp, Value AS heart_rate
-#             FROM heart_rate WHERE Id = {selected_user}
-#             ORDER BY timestamp
-#         """, conn)
-#         fig = plot_heart_rate(heart_df, selected_user)
-#         if fig: st.plotly_chart(fig, use_container_width=True)
-#     except Exception as e:
-#         st.error(f"Heart Rate Error: {str(e)}")
-
-# # Activity Summary
-# with col2:
-#     st.header("📊 Activity Summary")
-#     try:
-#         activity_df = pd.read_sql_query(f"""
-#             SELECT ActivityDate, TotalSteps, Calories
-#             FROM daily_activity WHERE Id = {selected_user}
-#             ORDER BY ActivityDate
-#         """, conn)
-#         fig = plot_activity_summary(activity_df, selected_user)
-#         if fig: st.plotly_chart(fig, use_container_width=True)
-#     except Exception as e:
-#         st.error(f"Activity Error: {str(e)}")
-
-# # Sleep Analysis
-# st.markdown("---")
-# st.header("💤 Sleep Patterns")
-# try:
-#     sleep_df = pd.read_sql_query(f"""
-#         SELECT date AS sleep_date, SUM(value) AS sleep_minutes
-#         FROM minute_sleep WHERE Id = {selected_user}
-#         GROUP BY sleep_date
-#     """, conn)
-#     sleep_df["sleep_hours"] = sleep_df["sleep_minutes"] / 60
-#     fig = plot_sleep_patterns(sleep_df, selected_user)
-#     if fig: st.plotly_chart(fig, use_container_width=True)
-# except Exception as e:
-#     st.error(f"Sleep Error: {str(e)}")
-
-# # Cleanup
-# conn.close()
-# st.markdown("---")
-# st.caption("Fitbit Dashboard - Created with Streamlit 🚀")
-
+    # Show date range info to user
+    st.sidebar.info(f"This user has data from {user_min_date.strftime('%b %d, %Y')} to {user_max_date.strftime('%b %d, %Y')}")
+    
+    # Filter by date range and selected user
+    if len(date_range) == 2:
+        user_df = merged_df[
+            (merged_df['Id'] == selected_user) & 
+            (merged_df['ActivityDate'] >= pd.to_datetime(date_range[0])) & 
+            (merged_df['ActivityDate'] <= pd.to_datetime(date_range[1]))
+        ]
+    else:
+        user_df = merged_df[merged_df['Id'] == selected_user]
+    
+    # Calculate aggregated metrics for the selected user
+    total_steps = user_df['TotalSteps'].sum()
+    total_calories = user_df['Calories'].sum()
+    total_sleep = user_df['TotalMinutesAsleep'].sum() if 'TotalMinutesAsleep' in user_df.columns else user_df['SleepMinutes'].sum()
+    
+    # Display metrics
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Total Running Steps", f"{total_steps:,}")
+    col2.metric("Total Burned Calories", f"{total_calories:,}")
+    col3.metric("Total Sleep Duration (mins)", f"{total_sleep:,}")
+    
+    # Display user activity over time
+    st.subheader(f"Activity Trends for User {selected_user_clean}")
+    
+    # Create a combined chart with dual y-axes for steps and calories
+    plot_individual_steps_calories(user_df) 
+    
+    display_df = user_df.copy()
+    display_df['ActivityDate'] = pd.to_datetime(display_df['ActivityDate']).dt.strftime('%B %d, %Y')
+    
+    # Remove specified columns
+    columns_to_remove = ['BMI', 'WeightKg', 'Id']
+    display_columns = [col for col in display_df.columns if col not in columns_to_remove]
+    display_df = display_df[display_columns]
+    
+    # Reset index to start from 1 instead of 0
+    display_df.index = range(1, len(display_df) + 1)
+    
+    # Display the raw data table
+    st.subheader(f"Activity data for user {selected_user_clean}")
+    st.dataframe(display_df)
 # --------------------------
 # Navigation logic
 # --------------------------
@@ -267,6 +200,6 @@ elif st.session_state.page == "top-users":
     st.header("🏅 Top Performers")
     st.write("Coming soon!")
 
+
 elif st.session_state.page == "user-insights":
-    st.header("🔍 User Insights")
-    st.write("Coming soon!")
+    individual_users()
