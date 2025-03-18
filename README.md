@@ -1,6 +1,6 @@
 # Fitbit Data Analysis Project
 
-##Project Overview
+Project Overview
 
 This project analyzes Fitbit data collected from 33 respondents in an Amazon survey (2016). The study involves statistical analysis, data visualization, and the development of a Streamlit dashboard to explore insights from the dataset.
 
