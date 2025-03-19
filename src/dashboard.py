@@ -1,10 +1,13 @@
 import os
 import streamlit as st
+import sqlite3 as sql
 import pandas as pd
-
+import plotly.express as px
+import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from database import connect_db, get_unique_user_ids
-from dashboard_visualization import plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_sleep_efficiency, plot_steps_vs_sleep
-from analysis import merge_and_analyze_data, compute_leader_metrics
+from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep, show_calories_plot, show_sleep_plot, show_steps_plot)
+from analysis import SQL_acquisition, merge_and_analyze_data, compute_leader_metrics
 
 
 # --------------------------
@@ -36,132 +39,239 @@ except Exception as e:
 # --------------------------
 if "page" not in st.session_state:
     st.session_state.page = "Home"
-
 # --------------------------
 # Homepage setup
-page = st.sidebar.radio("Navigation", ["Home", "Activity Overview", "Top Users", "Individual User"])
+# --------------------------
+def show_home(merged_df):
+    """Homepage with navigation buttons"""
+    st.markdown("<h1 style='text-align: center;'> Fitbit Health & Activity Dashboard</h1>", unsafe_allow_html=True)
+    # --------------------------
+    # About This Dashboard
+    # --------------------------
+    st.markdown(f"""
+    ### :material/info: About This Dashboard
+    The dashboard presents visualizations and analysis of Fitbit fitness and health tracking data collected from  3/12/2016 to 4/9/2016.
+    This dashboard explores relationships between fitness and health metrics. It not only presents data summaries but also provides meaningful insights to help users understand trends and behaviors.
 
-if page == "Home":
-    st.markdown("## Welcome to the Fitbit Dashboard")
+    The **Fitbit app** and **Fitbit Premium subscription** form an integrated health platform. The Fitbit app collects data from Fitbit’s wearables, providing key metrics on:
+    - **Physical Activity** (steps, active minutes, exercise intensity)
+    - **Sleep Tracking** (sleep duration, quality)
+    - **Heart Rate Monitoring** (resting and active heart rates)
+    - **Caloric Expenditure** (calories burned, metabolic trends)
+    - **Weight & BMI Logs** (tracking weight and fat percentage)
+
+    Fitbit Premium enhances the user experience by offering **personalized health reports and advanced insights**, helping users improve their overall well-being.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### :material/trophy: Navigate the Dashboard")
+     # --------------------------
+    # the buttons to the other pages
+    # --------------------------
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("Activity Overview", key="activity", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
-            st.session_state.page = "Activity Overview"
+        if st.button("Health & Activity Summary", key="activity", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
+            st.session_state.page = "Health & Activity Summary"
 
     with col2:
-        if st.button("Leaderboard", key="top-users", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/trophy:"):
-            st.session_state.page = "top-users"
+        if st.button("Leaderboard", key="Leaderboard", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/trophy:"):
+            st.session_state.page = "Leaderboard"
 
     with col3:
         if st.button("Personal Stats", key="user-insights", help="Search for a user to view their specific stats", use_container_width=True, icon=":material/account_circle:"):
             st.session_state.page = "User Insights"
-            
+         
     # --------------------------
-    # Informative Section Below Buttons
-    # --------------------------
-    st.markdown("---")
-    st.markdown("### About This Dashboard")
-    st.markdown("""
-    The dashboard presents visualizations and analysis of Fitbit fitness and health tracking data collected from **MM DD, 2016 to 12 April, 2016**.
-
-    This dashboard explores relationships between fitness and health metrics, it not only states data summaries but aims to present data purposefully.
-
-    The Fitbit app and Fitbit Premium subscription service form an integrated health platform. The Fitbit app collects data from Fitbit’s wearables, providing metrics on **physical activity, sleep, heart rate, and nutrition**. Fitbit Premium enhances the user experience with **personalized health reports and advanced insights**.
-    """)
-
-    # --------------------------
-    # Footer Section with Name
+    # Numerical Summary (Key Metrics)
     # --------------------------
     st.markdown("---")
-    st.markdown("<p style='text-align: center; font-size: 16px;'>📌 Developed by Students at VU</p>", unsafe_allow_html=True)
+
+    col1, col2, col3, col4 = st.columns(4)
+    
+    col1.metric(" :material/steps: Steps", f"{merged_df['TotalSteps'].mean():,.0f}", help="Average number of steps taken daily.")
+    col2.metric(" :material/local_fire_department: Calories", f"{merged_df['Calories'].mean():,.0f}", help="Average daily calories burned.")
+    col3.metric(" :material/bedtime: Sleep (hrs)", f"{merged_df['SleepMinutes'].mean() / 60:.1f}", help="Average sleep duration per night.")
+    col4.metric(":material/bolt: Active Minutes", f"{merged_df['VeryActiveMinutes'].mean():,.0f}", help="Average active minutes per day.")
+
+    st.markdown("---")
+    # --------------------------
+    # 3 plots
+    # --------------------------   
+    st.markdown("### :material/trending_up: Data Visualizations")
+    
+    tab1, tab2, tab3 = st.tabs(["Steps Over Time", "Calories Over Time", "Sleep Over Time"])
+    
+    with tab1:
+        st.plotly_chart(show_steps_plot(merged_df), use_container_width=True)
+    
+    with tab2:
+        st.plotly_chart(show_calories_plot(merged_df), use_container_width=True)
+    
+    with tab3:
+        st.plotly_chart(show_sleep_plot(merged_df), use_container_width=True)
+    
+
+    # --------------------------
+    # Footer Section
+    # --------------------------
+    st.markdown("---")
+    st.markdown("<p style='text-align: center; font-size: 16px;'>  Developed by Honglin Zhu, Havelanche Troenokromo, Lala Zhao and Chenshuo Zhang </p>", unsafe_allow_html=True)
 
 # --------------------------
 # Sidebar Navigation
 # --------------------------
 def setup_sidebar():
-    """Sidebar Navigation using Radio Buttons for Stability"""
     with st.sidebar:
         st.markdown("## Navigation")
 
         pages = {
             "Home": "Home",
-            "Activity Overview": "Activity Overview",
+            "Health & Activity Summary": "Health & Activity Summary",
             "Leaderboard": "Leaderboard",
             "User Insights": "Personal Stats"
         }
 
-        # Use radio buttons for stable navigation
         selected_page = st.radio(
             "Go to:",
             options=list(pages.keys()),
-            format_func=lambda x: pages[x],  # Display formatted text with emojis
-            index=list(pages.keys()).index(st.session_state.page)  # Keep current selection
+            format_func=lambda x: pages[x], 
+            index=list(pages.keys()).index(st.session_state.page)  
         )
 
-        # Update session state only if selection changes
         if selected_page != st.session_state.page:
             st.session_state.page = selected_page
-            st.rerun()  # Efficient page switch
+            st.rerun()  
+            
+# --------------------------
+# Sidebar activity overview page
+# --------------------------
+def setup_sidebar_activity_overview():
+    with st.sidebar:
+        setup_sidebar() 
+
+        st.title(":material/monitoring: Activity Filters")
+
+        date_range = st.date_input(
+            ":material/calendar_month: Select Date Range:",
+            [pd.to_datetime(merged_df['ActivityDate'].min()), pd.to_datetime(merged_df['ActivityDate'].max())],
+            key="activity_date_range"
+        )
+        selected_intensity = st.radio(
+            ":material/filter_alt: Filter Users by Intensity:",
+            ["All", "Heavy (≥ 60 min Very Active)", "Moderate (30-59 min Very Active)", "Light (1-29 min Very Active)"],
+            index=0
+        )
+
+        total_days = merged_df["ActivityDate"].nunique()
+        st.subheader(":material/calendar_month: Total Days Tracked")
+        st.info(f"Data covers **{total_days} days** of Fitbit activity.")
+        
+        return selected_intensity, date_range
 
 # --------------------------
 # Activity Overview Page
-def show_activity_overview(merged_df):
-    st.header("📊 Activity Overview")
+# --------------------------
+def show_activity_overview():
+    st.header("Health & Activity Summary") 
 
-    # Sidebar filters
-    st.sidebar.subheader("Filter Options")
-    user_ids = merged_df['Id'].unique().tolist()
-    selected_user = st.sidebar.selectbox("Select User ID:", user_ids)
+    selected_intensity, date_range = setup_sidebar_activity_overview()
 
-    date_range = st.sidebar.date_input(
-        "Select Date Range:",
-        [pd.to_datetime(merged_df['ActivityDate'].min()), pd.to_datetime(merged_df['ActivityDate'].max())],
-        pd.to_datetime(merged_df['ActivityDate'].min()),
-        pd.to_datetime(merged_df['ActivityDate'].max())
-    )
-
-    compare_to_avg = st.sidebar.checkbox("Compare with Baseline Averages")
-
-    # Filter data based on user and date range
     filtered_df = merged_df[
-        (merged_df['Id'] == selected_user) &
         (merged_df['ActivityDate'] >= pd.to_datetime(date_range[0])) &
         (merged_df['ActivityDate'] <= pd.to_datetime(date_range[1]))
-    ]
+    ] if date_range else merged_df
+    
+    heavy_count = merged_df[merged_df["VeryActiveMinutes"] >= 60].shape[0]
+    moderate_count = merged_df[(merged_df["VeryActiveMinutes"] >= 30) & (merged_df["VeryActiveMinutes"] < 60)].shape[0]
+    light_count = merged_df[(merged_df["VeryActiveMinutes"] > 0) & (merged_df["VeryActiveMinutes"] < 30)].shape[0]
 
-    # Calculate user stats
-    avg_steps = filtered_df['TotalSteps'].mean()
-    avg_calories = filtered_df['Calories'].mean()
-    avg_sleep = filtered_df['SleepMinutes'].mean()
+    # **Apply Activity Level Filter**
+    if selected_intensity == "Heavy (≥ 60 min Very Active)":
+        filtered_df = filtered_df[filtered_df['VeryActiveMinutes'] >= 60]
+        intensity_desc = (
+            "**Heavy Activity** users engage in **intense workouts** "
+            "(e.g., running, HIIT, intense cycling) for over 60 minutes daily.  \n"
+            f"**Heavy:** `{heavy_count}` users (≥ 60 min Very Active)"
+        )
+    elif selected_intensity == "Moderate (30-59 min Very Active)":
+        filtered_df = filtered_df[(filtered_df['VeryActiveMinutes'] >= 30) & (filtered_df['VeryActiveMinutes'] < 60)]
+        intensity_desc = (
+            "**Moderate Activity** users engage in **brisk walking, jogging, or moderate sports** "
+            "for 30-59 minutes daily.  \n"
+            f"**Moderate:** `{moderate_count}` users (30-59 min Very Active)"
+        )
+    elif selected_intensity == "Light (30-59 min Very Active)":
+        filtered_df = filtered_df[(filtered_df['VeryActiveMinutes'] > 0) & (filtered_df['VeryActiveMinutes'] < 30)]
+        intensity_desc = (
+            "**Light Activity** users focus on **short walks, household chores, or standing activities** "
+            "for 1-29 minutes daily.  \n"
+            f"**Light:** `{light_count}` users (1-29 min Very Active)"
+        )
+    else:
+        intensity_desc = (
+            "This section provides insights into **all activity levels** combined.  \n"
+            f"**Heavy:** `{heavy_count}` users  \n"
+            f"**Moderate:** `{moderate_count}` users  \n"
+            f"**Light:** `{light_count}` users"
+        )
 
-    # Display user stats
-    st.metric("Average Steps", f"{avg_steps:.0f}")
-    st.metric("Average Calories", f"{avg_calories:.0f}")
-    st.metric("Average Sleep (minutes)", f"{avg_sleep:.0f}")
+    st.info(intensity_desc)
 
-    if compare_to_avg:
-        overall_avg_steps = merged_df['TotalSteps'].mean()
-        overall_avg_calories = merged_df['Calories'].mean()
-        overall_avg_sleep = merged_df['SleepMinutes'].mean()
+    col1, col2 = st.columns([1.2, 2])
+    with col1:
+        st.subheader(":material/bolt: Very Active vs. Sedentary Minutes")
+        st.markdown("""
+        - This graph compares **Very active vs. sedentary** time.  
+        - **Sedentary Minutes (:material/weekend:)**: Time spent sitting or with little movement.  
+        - **Very Active Minutes (:material/directions_run:)**: Time spent doing high-intensity activities.  
+        - **Higher Active Minutes** = More movement, better fitness!  
+        - **More Sedentary Time?** Consider adding short walks or stretching!  
+        """)
 
-        step_diff = ((avg_steps - overall_avg_steps) / overall_avg_steps) * 100
-        calorie_diff = ((avg_calories - overall_avg_calories) / overall_avg_calories) * 100
-        sleep_diff = ((avg_sleep - overall_avg_sleep) / overall_avg_sleep) * 100
+    with col2:
+        plot_active_vs_sedentary(filtered_df)
 
-        st.markdown("### 📈 Comparison to Averages:")
-        st.write(f"*Steps:* {'+' if step_diff >= 0 else ''}{step_diff:.1f}% compared to all users.")
-        st.write(f"*Calories:* {'+' if calorie_diff >= 0 else ''}{calorie_diff:.1f}% compared to all users.")
-        st.write(f"*Sleep:* {'+' if sleep_diff >= 0 else ''}{sleep_diff:.1f}% compared to all users.")
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric(" :material/steps: Steps", f"{merged_df['TotalSteps'].mean():,.0f}", help="Average number of steps taken daily.")
+    col2.metric(" :material/local_fire_department: Calories", f"{merged_df['Calories'].mean():,.0f}", help="Average daily calories burned.")
+    col3.metric(" :material/bedtime: Sleep (hrs)", f"{merged_df['SleepMinutes'].mean() / 60:.1f}", help="Average sleep duration per night.")
+    col4.metric(":material/bolt: Active Minutes", f"{merged_df['VeryActiveMinutes'].mean():,.0f}", help="Average active minutes per day.")
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        plot_steps_trends(filtered_df)
+    with col2:
+        plot_calories_trends(filtered_df)
+    with col3:
+        plot_sleep_trends(filtered_df)
+
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        plot_activity_intensity(filtered_df)
+    with col5:
+        plot_heart_rate_trends(filtered_df)
+    with col6:
+        plot_step_distribution_for_all_user(filtered_df)
+   
+    col7, col8 = st.columns(2)
+    with col7:
+        plot_steps_vs_calories(filtered_df)
+    with col8:
+        plot_sleep_vs_activity(filtered_df)
+        
+    add_footer() 
+
+
 
 # --------------------------
 # Leaderboard
 def leaderboard_page(metrics_df, champions):
     st.header(":material/trophy: Leaderboard")
-    
     # --------------------------
     # Sidebar Section
     with st.sidebar:
+        setup_sidebar() 
         st.title(":material/search: Choose Your Champion")
         
         # Champion selection radio buttons
@@ -360,7 +470,17 @@ def leaderboard_page(metrics_df, champions):
                 Offset patterns (activity→sleep lag) reveal multi-stage recovery needs, particularly after high-intensity intervals requiring glycogen replenishment and muscle repair.
                 3. **Habitual Rhythm Encoding**: 
                 Repeating weekly/monthly cycles demonstrate entrainment of biological rhythms to lifestyle patterns through consistent behavioral reinforcement.''')
+    add_footer() 
 
+
+def add_footer():
+    st.divider()
+    st.caption('''
+        :material/warning: *Data Availability Note:*  
+        \nSome metrics may show incomplete records due to inherent gaps in wearable device data collection.  
+        \nMissing values occur when: Users didn't wear their device; Specific activities weren't tracked; Sleep/wake states couldn't be determined.  
+        \nAll analyses use available data.
+    ''')
 # --------------------------
 # Individual User Statistics
 
@@ -369,18 +489,13 @@ def leaderboard_page(metrics_df, champions):
 if 'page' not in st.session_state:
     st.session_state.page = "Home"
 
-if st.session_state.page == "activity":
-    show_activity_overview(merged_df)
-
-elif st.session_state.page == "top-users":
-    leaderboard_page(metrics_df, champions) 
-    st.divider()
-    st.caption('''
-               :material/warning: **Data Availability Note:** 
-               \nSome metrics may show incomplete records due to inherent gaps in wearable device data collection. 
-               \nMissing values occur when: Users didn't wear their device; Specific activities weren't tracked; Sleep/wake states couldn't be determined.  
-               \nAll analyses use available data.''')
-
-elif st.session_state.page == "user-insights":
+# Determine which page to show
+if st.session_state.page == "Home":
+    show_home(merged_df)
+elif st.session_state.page == "Health & Activity Summary":
+    show_activity_overview()
+elif st.session_state.page == "Leaderboard":
+    leaderboard_page(metrics_df, champions)
+elif st.session_state.page == "User Insights":
     st.header("🔍 User Insights")
     st.write("Coming soon!")
