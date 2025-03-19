@@ -530,3 +530,74 @@ def plot_sleep_vs_activity(df):
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+
+def plot_individual_metrics(user_df):
+    # 1. Calories Burned each day - using orange color
+    fig_calories = px.line(
+        user_df, 
+        x='ActivityDate', 
+        y='Calories',
+        title=":material/local_fire_department: Daily Calories Burned",
+        markers=True,
+        line_shape='linear',
+        color_discrete_sequence=['orange']  # Set specific color
+    )
+    fig_calories.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Calories",
+        height=400
+    )
+    st.plotly_chart(fig_calories, use_container_width=True)
+    
+    # 2. Steps each day - using blue color - CHANGED TO BAR CHART
+    fig_steps = px.bar(  # Changed from px.line to px.bar
+        user_df, 
+        x='ActivityDate', 
+        y='TotalSteps',
+        title=":material/steps: Daily Steps",
+        color_discrete_sequence=['blue']  # Set specific color
+    )
+    fig_steps.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Steps",
+        height=400
+    )
+    st.plotly_chart(fig_steps, use_container_width=True)
+    
+    # 3. Distance each day - using green color
+    fig_distance = px.line(
+        user_df, 
+        x='ActivityDate', 
+        y='TotalDistance',
+        title=":material/distance: Daily Distance Traveled",
+        markers=True,
+        line_shape='linear',
+        color_discrete_sequence=['green']  # Set specific color
+    )
+    fig_distance.update_layout(
+        xaxis_title="Date",
+        yaxis_title="Distance (km)",
+        height=400
+    )
+    st.plotly_chart(fig_distance, use_container_width=True)
+    
+    # 4. Sleep duration each day - using purple color - CHANGED TO BAR CHART
+   
+    sleep_column = 'TotalMinutesAsleep' if 'TotalMinutesAsleep' in user_df.columns else 'SleepMinutes'
+    if sleep_column in user_df.columns:
+        fig_sleep = px.bar(  # Changed from px.line to px.bar
+            user_df, 
+            x='ActivityDate', 
+            y=sleep_column,
+            title="Daily Sleep Duration",
+            color_discrete_sequence=['purple']  # Set specific color
+        )
+        fig_sleep.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Sleep Duration (minutes)",
+            height=400
+        )
+        st.plotly_chart(fig_sleep, use_container_width=True)
+    else:
+        st.warning("Sleep data not available for this user")
