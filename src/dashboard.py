@@ -1,12 +1,13 @@
 import os
 import streamlit as st
+import sqlite3 as sql
 import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from database import connect_db, get_unique_user_ids
-from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep)
-from analysis import merge_and_analyze_data, compute_leader_metrics
+from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep, show_calories_plot, show_sleep_plot, show_steps_plot)
+from analysis import SQL_acquisition, merge_and_analyze_data, compute_leader_metrics
 
 
 # --------------------------
@@ -38,13 +39,32 @@ except Exception as e:
 # --------------------------
 if "page" not in st.session_state:
     st.session_state.page = "Home"
-
 # --------------------------
 # Homepage setup
 # --------------------------
 def show_home(merged_df):
     """Homepage with navigation buttons"""
     st.markdown("<h1 style='text-align: center;'> Fitbit Health & Activity Dashboard</h1>", unsafe_allow_html=True)
+    # --------------------------
+    # About This Dashboard
+    # --------------------------
+    st.markdown(f"""
+    ### :material/info: About This Dashboard
+    The dashboard presents visualizations and analysis of Fitbit fitness and health tracking data collected from  3/12/2016 to 4/9/2016.
+    This dashboard explores relationships between fitness and health metrics. It not only presents data summaries but also provides meaningful insights to help users understand trends and behaviors.
+
+    The **Fitbit app** and **Fitbit Premium subscription** form an integrated health platform. The Fitbit app collects data from Fitbit’s wearables, providing key metrics on:
+    - **Physical Activity** (steps, active minutes, exercise intensity)
+    - **Sleep Tracking** (sleep duration, quality)
+    - **Heart Rate Monitoring** (resting and active heart rates)
+    - **Caloric Expenditure** (calories burned, metabolic trends)
+    - **Weight & BMI Logs** (tracking weight and fat percentage)
+
+    Fitbit Premium enhances the user experience by offering **personalized health reports and advanced insights**, helping users improve their overall well-being.
+    """)
+    
+    st.markdown("---")
+    st.markdown("### :material/trophy: Navigate the Dashboard")
      # --------------------------
     # the buttons to the other pages
     # --------------------------
@@ -52,11 +72,11 @@ def show_home(merged_df):
 
     with col1:
         if st.button("Health & Activity Summary", key="activity", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
-            st.session_state.page = "Activity Overview"
+            st.session_state.page = "Health & Activity Summary"
 
     with col2:
-        if st.button("Leaderboard", key="top-users", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/trophy:"):
-            st.session_state.page = "top-users"
+        if st.button("Leaderboard", key="Leaderboard", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/trophy:"):
+            st.session_state.page = "Leaderboard"
 
     with col3:
         if st.button("Personal Stats", key="user-insights", help="Search for a user to view their specific stats", use_container_width=True, icon=":material/account_circle:"):
@@ -66,7 +86,6 @@ def show_home(merged_df):
     # Numerical Summary (Key Metrics)
     # --------------------------
     st.markdown("---")
-    st.markdown("### :material/trophy: Key Fitbit Statistics")
 
     col1, col2, col3, col4 = st.columns(4)
     
@@ -75,39 +94,29 @@ def show_home(merged_df):
     col3.metric(" :material/bedtime: Sleep (hrs)", f"{merged_df['SleepMinutes'].mean() / 60:.1f}", help="Average sleep duration per night.")
     col4.metric(":material/bolt: Active Minutes", f"{merged_df['VeryActiveMinutes'].mean():,.0f}", help="Average active minutes per day.")
 
-    # --------------------------
-    # Visualization Section (Example: Average Steps Over Time)
-    # --------------------------
     st.markdown("---")
-    st.markdown("### :material/monitoring: Average Steps Over Time")
-
-    # Ensure 'ActivityDate' is in datetime format and grouped
-    merged_df['ActivityDate'] = pd.to_datetime(merged_df['ActivityDate'])
-    daily_avg = merged_df.groupby("ActivityDate")["TotalSteps"].mean().reset_index()
-
-    fig = px.line(daily_avg, x="ActivityDate", y="TotalSteps",
-                  title="Average Steps Over Time",
-                  labels={"TotalSteps": "Avg Steps", "ActivityDate": "Date"},
-                  template="plotly_dark")
+    # --------------------------
+    # 3 plots
+    # --------------------------   
+    st.markdown("### :material/trending_up: Data Visualizations")
     
-    st.plotly_chart(fig, use_container_width=True)   
-    # --------------------------
-    # Informative Section Below Buttons
-    # --------------------------
-    st.markdown("---")
-    st.markdown("### About This Dashboard")
-    st.markdown("""
-    The dashboard presents visualizations and analysis of Fitbit fitness and health tracking data collected from **MM DD, 2016 to 12 April, 2016**.
+    tab1, tab2, tab3 = st.tabs(["Steps Over Time", "Calories Over Time", "Sleep Over Time"])
+    
+    with tab1:
+        st.plotly_chart(show_steps_plot(merged_df), use_container_width=True)
+    
+    with tab2:
+        st.plotly_chart(show_calories_plot(merged_df), use_container_width=True)
+    
+    with tab3:
+        st.plotly_chart(show_sleep_plot(merged_df), use_container_width=True)
+    
 
-    This dashboard explores relationships between fitness and health metrics, it not only states data summaries but aims to present data purposefully.
-
-    The Fitbit app and Fitbit Premium subscription service form an integrated health platform. The Fitbit app collects data from Fitbit’s wearables, providing metrics on **physical activity, sleep, heart rate, and nutrition**. Fitbit Premium enhances the user experience with **personalized health reports and advanced insights**.
-    """)
     # --------------------------
     # Footer Section
     # --------------------------
     st.markdown("---")
-    st.markdown("<p style='text-align: center; font-size: 16px;'>  Developed by Students at VU</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 16px;'>  Developed by Honglin Zhu, Havelanche Troenokromo, Lala Zhao and Chenshuo Zhang </p>", unsafe_allow_html=True)
 
 # --------------------------
 # Sidebar Navigation
@@ -118,7 +127,7 @@ def setup_sidebar():
 
         pages = {
             "Home": "Home",
-            "Activity Overview": "Activity Overview",
+            "Health & Activity Summary": "Health & Activity Summary",
             "Leaderboard": "Leaderboard",
             "User Insights": "Personal Stats"
         }
@@ -259,10 +268,10 @@ def show_activity_overview():
 # Leaderboard
 def leaderboard_page(metrics_df, champions):
     st.header(":material/trophy: Leaderboard")
-    
     # --------------------------
     # Sidebar Section
     with st.sidebar:
+        setup_sidebar() 
         st.title(":material/search: Choose Your Champion")
         
         # Champion selection radio buttons
@@ -485,10 +494,10 @@ if 'page' not in st.session_state:
 # Determine which page to show
 if st.session_state.page == "Home":
     show_home(merged_df)
-elif st.session_state.page == "Activity Overview":
+elif st.session_state.page == "Health & Activity Summary":
     show_activity_overview()
 elif st.session_state.page == "Leaderboard":
     leaderboard_page(metrics_df, champions)
-elif st.session_state.page == "user-insights":
+elif st.session_state.page == "User Insights":
     st.header("🔍 User Insights")
     st.write("Coming soon!")

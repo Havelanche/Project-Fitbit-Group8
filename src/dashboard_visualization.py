@@ -3,6 +3,31 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+
+def show_steps_plot(merged_df):
+    daily_avg = merged_df.groupby("ActivityDate")["TotalSteps"].mean().reset_index()
+    fig = px.line(daily_avg, x="ActivityDate", y="TotalSteps",
+                  title="Average Steps Over Time",
+                  labels={"TotalSteps": "Avg Steps", "ActivityDate": "Date"},
+                  template="plotly_dark")
+    return fig
+
+def show_calories_plot(merged_df):
+    daily_calories = merged_df.groupby("ActivityDate")["Calories"].mean().reset_index()
+    fig = px.line(daily_calories, x="ActivityDate", y="Calories",
+                  title="Average Calories Burned Over Time",
+                  labels={"Calories": "Avg Calories", "ActivityDate": "Date"},
+                  template="plotly_dark")
+    return fig
+
+def show_sleep_plot(merged_df):
+    daily_sleep = merged_df.groupby("ActivityDate")["SleepMinutes"].mean().reset_index()
+    fig = px.line(daily_sleep, x="ActivityDate", y="SleepMinutes",
+                  title="Average Sleep Duration Over Time",
+                  labels={"SleepMinutes": "Avg Sleep Minutes", "ActivityDate": "Date"},
+                  template="plotly_dark")
+    return fig
+
 def plot_step_distance_relationship(champ_daily_df):
     if champ_daily_df.empty:
         st.warning("No daily data available for this user.")
