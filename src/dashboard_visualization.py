@@ -541,7 +541,7 @@ def plot_individual_metrics(user_df):
         title="Daily Calories Burned",
         markers=True,
         line_shape='linear',
-        color_discrete_sequence=['orange']  # Set specific color
+        color_discrete_sequence=['green']  # Set specific color
     )
     fig_calories.update_layout(
         xaxis_title="Date",
@@ -573,7 +573,7 @@ def plot_individual_metrics(user_df):
         title="Daily Distance Traveled",
         markers=True,
         line_shape='linear',
-        color_discrete_sequence=['green']  # Set specific color
+        color_discrete_sequence=['orange']  # Set specific color
     )
     fig_distance.update_layout(
         xaxis_title="Date",
