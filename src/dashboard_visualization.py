@@ -538,7 +538,7 @@ def plot_individual_metrics(user_df):
         user_df, 
         x='ActivityDate', 
         y='Calories',
-        title=":material/local_fire_department: Daily Calories Burned",
+        title="Daily Calories Burned",
         markers=True,
         line_shape='linear',
         color_discrete_sequence=['orange']  # Set specific color
@@ -555,7 +555,7 @@ def plot_individual_metrics(user_df):
         user_df, 
         x='ActivityDate', 
         y='TotalSteps',
-        title=":material/steps: Daily Steps",
+        title="Daily Steps",
         color_discrete_sequence=['blue']  # Set specific color
     )
     fig_steps.update_layout(
@@ -570,7 +570,7 @@ def plot_individual_metrics(user_df):
         user_df, 
         x='ActivityDate', 
         y='TotalDistance',
-        title=":material/distance: Daily Distance Traveled",
+        title="Daily Distance Traveled",
         markers=True,
         line_shape='linear',
         color_discrete_sequence=['green']  # Set specific color
