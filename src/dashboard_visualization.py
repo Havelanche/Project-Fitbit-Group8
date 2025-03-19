@@ -34,13 +34,6 @@ def plot_step_distance_relationship(champ_daily_df):
         return
 
     fig = go.Figure()
-    # Add Steps (Bars)
-    fig.add_trace(go.Bar(
-        x=champ_daily_df["ActivityDate"],
-        y=champ_daily_df["TotalSteps"],
-        name="Steps",
-        marker_color="blue"
-    ))
     # Add Distance (Line)
     fig.add_trace(go.Scatter(
         x=champ_daily_df["ActivityDate"],
@@ -48,15 +41,43 @@ def plot_step_distance_relationship(champ_daily_df):
         name="Distance (km)",
         line=dict(color="orange"),
         yaxis="y2",
-        mode="lines+markers"  # Ensures connected points
+        mode="lines+markers"
+    ))
+    # Add Steps (Bars)
+    fig.add_trace(go.Bar(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["TotalSteps"],
+        name="Steps",
+        marker_color="blue"
     ))
     # Update layout
     fig.update_layout(
         title=f"Steps vs. Distance",
-        xaxis=dict(title="Dates", showticklabels=False),  # Hides individual dates
-        yaxis=dict(title="Steps", side="left"),
-        yaxis2=dict(title="Distance (km)", side="right", overlaying="y"),
-        hovermode="x unified"
+        xaxis=dict(
+            title="Dates",
+            showticklabels=False,
+            type='category'  # Added to match other plots
+        ),
+        yaxis=dict(
+            title="Steps",
+            side="left",
+            rangemode='tozero'  # Added axis range behavior
+        ),
+        yaxis2=dict(
+            title="Distance (km)",
+            side="right",
+            overlaying="y",
+            rangemode='tozero'  # Added axis range behavior
+        ),
+        hovermode="x unified",
+        # Added horizontal legend configuration
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions above plot
+            xanchor="right",
+            x=1  # Right-aligned
+        )
     )
 
     st.plotly_chart(fig)
@@ -69,13 +90,7 @@ def plot_calories_vs_activity(champ_daily_df):
     champ_daily_df = champ_daily_df.sort_values(by="ActivityDate")
 
     fig = go.Figure()
-    # Active Minutes (Bar)
-    fig.add_trace(go.Bar(
-        x=champ_daily_df["ActivityDate"],
-        y=champ_daily_df["VeryActiveMinutes"],
-        name="Very Active Minutes",
-        marker_color="green"
-    ))
+    
     # Calories (Line)
     fig.add_trace(go.Scatter(
         x=champ_daily_df["ActivityDate"],
@@ -85,13 +100,41 @@ def plot_calories_vs_activity(champ_daily_df):
         yaxis="y2",
         mode="lines+markers"
     ))
+    # Active Minutes (Bar)
+    fig.add_trace(go.Bar(
+        x=champ_daily_df["ActivityDate"],
+        y=champ_daily_df["VeryActiveMinutes"],
+        name="Very Active Minutes",
+        marker_color="green"
+    ))
     # Layout
     fig.update_layout(
-        title=f"Calories vs. Very Active Minute",
-        xaxis=dict(title="Dates", showticklabels=False),
-        yaxis=dict(title="Very Active Minutes", side="left"),
-        yaxis2=dict(title="Calories (kcal)", side="right", overlaying="y"),
-        hovermode="x unified"
+        title=f"Calories vs. Very Active Minutes",
+        xaxis=dict(
+            title="Dates",
+            showticklabels=False,
+            type='category'  # Added to match first plot's date handling
+        ),
+        yaxis=dict(
+            title="Very Active Minutes",
+            side="left",
+            rangemode='tozero'  # Added to match axis behavior
+        ),
+        yaxis2=dict(
+            title="Calories (kcal)",
+            side="right",
+            overlaying="y",
+            rangemode='tozero'  # Added to match axis behavior
+        ),
+        hovermode="x unified",
+        # Added legend configuration to match first plot
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions legend just above the plot
+            xanchor="right",
+            x=1  # Right-aligns legend
+        )
     )
     st.plotly_chart(fig)
 
@@ -138,7 +181,7 @@ def plot_sleep_distribution(champ_daily_df):
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["SedentaryMinutes"],
         name='Sedentary Time',
-        line=dict(color='#7f7f7f', width=2),  # Gray
+        line=dict(color="blue", width=2),  # Gray
         yaxis='y2',
         mode='lines+markers',
         hoverinfo='y+name'
@@ -191,8 +234,7 @@ def plot_sleep_correlations(champ_daily_df):
         y=corr_matrix.columns,
         color_continuous_scale='RdBu',
         zmin=-1,
-        zmax=1
-    )
+        zmax=1)
     
     # Update layout for better label placement
     fig.update_layout(
@@ -202,10 +244,10 @@ def plot_sleep_correlations(champ_daily_df):
             tickangle=-15  # Angle labels for better readability
         ),
         yaxis=dict(
-            side='left'  # Keep y-axis on left
+            side='left',  # Keep y-axis on left
+            tickangle=-15
         ),
-        margin=dict(l=100, r=20, t=100, b=20)  # Adjust margins
-    )
+        margin=dict(l=10, r=10, t=50, b=20) ) # Adjust margins
     
     # Improve text visibility
     fig.update_xaxes(showgrid=False)
@@ -227,7 +269,7 @@ def plot_sleep_efficiency(champ_daily_df):
     size='Calories',
     hover_data=['ActivityDate'],
     labels={
-        'VeryActiveMinutes': 'Active Minutes',
+        'VeryActiveMinutes': 'Very Active Minutes',
         'SleepEfficiency': 'Sleep Efficiency (%)',
         'TotalSteps': 'Daily Steps'
     },
@@ -240,9 +282,8 @@ def plot_sleep_efficiency(champ_daily_df):
         coloraxis_colorbar=dict(
             title='Daily Steps',
             tickvals=[5000, 10000, 15000],
-            ticktext=['5k', '10k', '15k']
-        )
-    )
+            ticktext=['5k', '10k', '15k']),
+        margin=dict(l=10, r=10, t=50, b=20)) # Adjust margins
     
     st.plotly_chart(fig)
 
@@ -255,7 +296,7 @@ def plot_steps_vs_sleep(champ_daily_df):
         y=champ_daily_df['TotalSteps'],
         name='Steps',
         line=dict(color='blue'),
-        yaxis='y1'
+        yaxis='y1', mode="lines+markers"
     ))
     
     # Add sleep trace
@@ -269,9 +310,17 @@ def plot_steps_vs_sleep(champ_daily_df):
     
     fig.update_layout(
         title='Daily Steps vs Sleep Duration',
-        yaxis=dict(title='Steps', side='left'),
-        yaxis2=dict(title='Sleep Minutes', side='right', overlaying='y'),
-        hovermode='x unified'
+        yaxis=dict(title='Steps', side='left', rangemode='tozero'),
+        yaxis2=dict(title='Sleep Minutes', side='right', overlaying='y', rangemode='tozero'),
+        hovermode='x unified',
+                # Added horizontal legend configuration
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions above plot
+            xanchor="right",
+            x=1  # Right-aligned
+        )
     )
     st.plotly_chart(fig)
     

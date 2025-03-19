@@ -413,7 +413,7 @@ def leaderboard_page(metrics_df, champions):
     tab1, tab2, tab3 = st.tabs(["Analysis 1", "Analysis 2", "Analysis 3"])
     
     with tab1:
-        st.subheader(":material/monitoring: Step-Distance Relationship")
+        st.subheader(":material/monitoring: Every Step Counts: Pedestrian Activity Correlation")
         plot_step_distance_relationship(champ_daily_df)
         st.markdown('''
                     Key Observations:
@@ -421,22 +421,20 @@ def leaderboard_page(metrics_df, champions):
                     2. **Consistent patterns**: Peaks/dips align across both metrics''')
 
     with tab2:  
-        st.subheader(":material/monitoring: Calories vs. Very Active Minutes") 
+        st.subheader(":material/monitoring: Sweat Equity: How Vigorous Movement Drives Calorie Burn") 
         plot_calories_vs_activity(champ_daily_df)
         st.markdown('''
                     Activity-Energy Relationship:
                     1. **Intensity matters**: High active minutes consistently drive calorie expenditure peaks  
-                    2. **Metabolic lag**: Max calorie burns often follow activity spikes by 12-24 hours  
-                    3. **Consistency beats intensity**: Regular moderate activity > sporadic peaks ''')
+                    2. **Consistency beats intensity**: Regular moderate activity > sporadic peaks''')
 
     with tab3:  
-        st.subheader(":material/monitoring: Sleep Quality Distribution")
+        st.subheader(":material/monitoring: Restful Nights, Active Days: Breaking the Sedentary Cycle")
         plot_sleep_distribution(champ_daily_df)
         st.markdown('''
                     Key Sleep Patterns:
                     1. Consistent deep sleep maintenance → Lower sedentary time variability
-                    2. **Weekend recovery**: Saturday activity drops → Sunday sleep quality gains  
-                    3. **Sleep debt cycles**: 3+ poor sleep days → Progressive sedentary increases''')
+                    2. **Sleep debt cycles**: 3+ poor sleep days → Progressive sedentary increases''')
 
     # =================================================================
     # Additional Sleep Analysis Section
@@ -462,7 +460,7 @@ def leaderboard_page(metrics_df, champions):
                     - Trend line shows overall pattern direction''')
     
     st.divider()
-    st.subheader(":material/ssid_chart: Temporal Comparisons")
+    st.subheader(":material/ssid_chart: Walk Hard, Sleep Hard: Movement-Recovery Relationship")
     plot_steps_vs_sleep(champ_daily_df)
     st.markdown('''
                 Key Observations:
