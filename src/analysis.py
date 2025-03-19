@@ -26,7 +26,7 @@ def unique_users_totaldistance(df):
     return unique_users_total_distance
 
 def classify_user(df):
-    user_counts = df.groupby('Id').size()
+    user_counts = df.groupby('Id')['VeryActiveMinutes'].mean()
     categories = pd.cut(user_counts, bins=[0, 10, 15, float('inf')], labels=['Light', 'Moderate', 'Heavy'])
     return pd.DataFrame({'Class': categories})
 
@@ -392,6 +392,10 @@ def merge_and_analyze_data(connection):
 
         for df in [minute_sleep, weight_log, hourly_calories, hourly_intensity, hourly_steps, heart_rate]:
             merged_df = pd.merge(merged_df, df, on=['Id', 'ActivityDate'], how='left')
+        print("Unique users in daily_activity:", daily_activity["Id"].nunique())
+        print("Unique users in heart_rate:", heart_rate["Id"].nunique())
+        print("Unique users in minute_sleep:", minute_sleep["Id"].nunique())
+        print("Unique users in weight_log:", weight_log["Id"].nunique())
 
         # print("Columns after merge:", merged_df.columns)
 
@@ -410,6 +414,10 @@ def merge_and_analyze_data(connection):
                         'TotalIntensity', 'AverageIntensity', 'StepTotal']
 
         merged_df[numeric_cols] = merged_df[numeric_cols].apply(pd.to_numeric, errors='coerce')
+        user_classifications = classify_user(merged_df)
+        merged_df = merged_df.merge(user_classifications, left_on="Id", right_index=True, how="left")
+
+        merged_df["Class"] = merged_df["Class"].fillna("Light")
 
         user_summaries = merged_df.groupby('Id').agg({
             'TotalSteps': 'mean',
@@ -425,7 +433,8 @@ def merge_and_analyze_data(connection):
             'HourlyCalories': 'mean',
             'TotalIntensity': 'mean',
             'AverageIntensity': 'mean',
-            'StepTotal': 'mean'
+            'StepTotal': 'mean',
+            'Class': 'first'
         }).reset_index()
 
         return merged_df, user_summaries

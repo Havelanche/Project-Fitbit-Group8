@@ -42,6 +42,24 @@ if "page" not in st.session_state:
 # --------------------------
 # Homepage setup
 # --------------------------
+def display_activity_metrics(merged_df):
+    
+    # Compute averages
+    avg_steps = merged_df["TotalSteps"].mean()
+    avg_calories = merged_df["Calories"].mean()
+    avg_sleep_hours = merged_df["SleepMinutes"].mean() / 60 
+    avg_active_minutes = merged_df["VeryActiveMinutes"].mean()
+
+    col1, col2, col3, col4 = st.columns(4)
+    
+    col1.metric(" :material/steps: Steps", f"{avg_steps:,.0f} steps", help="Average number of steps taken daily.")
+    col2.metric(" :material/local_fire_department: Calories", f"{avg_calories:,.0f} kcal", help="Average daily calories burned.")
+    col3.metric(" :material/bedtime: Sleep (hrs)", f"{avg_sleep_hours:.1f} hrs", help="Average sleep duration per night.")
+    col4.metric(":material/bolt: Active Minutes", f"{avg_active_minutes:,.0f} min", help="Average active minutes per day.")
+
+    st.markdown("---")
+    
+    
 def show_home(merged_df):
     """Homepage with navigation buttons"""
     st.markdown("<h1 style='text-align: center;'> Fitbit Health & Activity Dashboard</h1>", unsafe_allow_html=True)
@@ -51,9 +69,10 @@ def show_home(merged_df):
     st.markdown(f"""
     ### :material/info: About This Dashboard
     The dashboard presents visualizations and analysis of Fitbit fitness and health tracking data collected from  3/12/2016 to 4/9/2016.
+    
     This dashboard explores relationships between fitness and health metrics. It not only presents data summaries but also provides meaningful insights to help users understand trends and behaviors.
 
-    The **Fitbit app** and **Fitbit Premium subscription** form an integrated health platform. The Fitbit app collects data from Fitbit’s wearables, providing key metrics on:
+    The Fitbit app collects data from Fitbit’s wearables, providing key metrics on:
     - **Physical Activity** (steps, active minutes, exercise intensity)
     - **Sleep Tracking** (sleep duration, quality)
     - **Heart Rate Monitoring** (resting and active heart rates)
@@ -64,15 +83,15 @@ def show_home(merged_df):
     """)
     
     st.markdown("---")
-    st.markdown("### :material/trophy: Navigate the Dashboard")
+    st.markdown("### :material/pin_drop: Navigate the Dashboard")
      # --------------------------
     # the buttons to the other pages
     # --------------------------
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("Health & Activity Summary", key="activity", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
-            st.session_state.page = "Health & Activity Summary"
+        if st.button("Users Summary", key="Users_Summary", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
+            st.session_state.page = "Users Summary"
 
     with col2:
         if st.button("Leaderboard", key="Leaderboard", help="View the top-performing users across various metrics", use_container_width=True, icon=":material/trophy:"):
@@ -86,15 +105,8 @@ def show_home(merged_df):
     # Numerical Summary (Key Metrics)
     # --------------------------
     st.markdown("---")
-
-    col1, col2, col3, col4 = st.columns(4)
-    
-    col1.metric(" :material/steps: Steps", f"{merged_df['TotalSteps'].mean():,.0f}", help="Average number of steps taken daily.")
-    col2.metric(" :material/local_fire_department: Calories", f"{merged_df['Calories'].mean():,.0f}", help="Average daily calories burned.")
-    col3.metric(" :material/bedtime: Sleep (hrs)", f"{merged_df['SleepMinutes'].mean() / 60:.1f}", help="Average sleep duration per night.")
-    col4.metric(":material/bolt: Active Minutes", f"{merged_df['VeryActiveMinutes'].mean():,.0f}", help="Average active minutes per day.")
-
-    st.markdown("---")
+    st.markdown("### :material/bar_chart: General Overview")
+    display_activity_metrics(merged_df)
     # --------------------------
     # 3 plots
     # --------------------------   
@@ -127,7 +139,7 @@ def setup_sidebar():
 
         pages = {
             "Home": "Home",
-            "Health & Activity Summary": "Health & Activity Summary",
+            "Users Summary": "Users Summary",
             "Leaderboard": "Leaderboard",
             "User Insights": "Personal Stats"
         }
@@ -146,17 +158,10 @@ def setup_sidebar():
 # --------------------------
 # Sidebar activity overview page
 # --------------------------
-def setup_sidebar_activity_overview():
+def setup_sidebar_Users_Summary():
     with st.sidebar:
         setup_sidebar() 
 
-        st.title(":material/monitoring: Activity Filters")
-
-        date_range = st.date_input(
-            ":material/calendar_month: Select Date Range:",
-            [pd.to_datetime(merged_df['ActivityDate'].min()), pd.to_datetime(merged_df['ActivityDate'].max())],
-            key="activity_date_range"
-        )
         selected_intensity = st.radio(
             ":material/filter_alt: Filter Users by Intensity:",
             ["All", "Heavy (≥ 60 min Very Active)", "Moderate (30-59 min Very Active)", "Light (1-29 min Very Active)"],
@@ -167,26 +172,23 @@ def setup_sidebar_activity_overview():
         st.subheader(":material/calendar_month: Total Days Tracked")
         st.info(f"Data covers **{total_days} days** of Fitbit activity.")
         
-        return selected_intensity, date_range
+        return selected_intensity
 
 # --------------------------
-# Activity Overview Page
+# Users Summary
 # --------------------------
-def show_activity_overview():
-    st.header("Health & Activity Summary") 
+def show_Users_Summary():
+    st.header("Users Summary") 
 
-    selected_intensity, date_range = setup_sidebar_activity_overview()
+    selected_intensity = setup_sidebar_Users_Summary()
 
-    filtered_df = merged_df[
-        (merged_df['ActivityDate'] >= pd.to_datetime(date_range[0])) &
-        (merged_df['ActivityDate'] <= pd.to_datetime(date_range[1]))
-    ] if date_range else merged_df
-    
-    heavy_count = merged_df[merged_df["VeryActiveMinutes"] >= 60].shape[0]
-    moderate_count = merged_df[(merged_df["VeryActiveMinutes"] >= 30) & (merged_df["VeryActiveMinutes"] < 60)].shape[0]
-    light_count = merged_df[(merged_df["VeryActiveMinutes"] > 0) & (merged_df["VeryActiveMinutes"] < 30)].shape[0]
+    filtered_df = merged_df.copy()
+    # Count users based on the 'Class' column in merged_df
+    heavy_count = merged_df[merged_df["Class"] == "Heavy"]["Id"].nunique()
+    moderate_count = merged_df[merged_df["Class"] == "Moderate"]["Id"].nunique()
+    light_count = merged_df[merged_df["Class"] == "Light"]["Id"].nunique()
 
-    # **Apply Activity Level Filter**
+
     if selected_intensity == "Heavy (≥ 60 min Very Active)":
         filtered_df = filtered_df[filtered_df['VeryActiveMinutes'] >= 60]
         intensity_desc = (
@@ -201,7 +203,7 @@ def show_activity_overview():
             "for 30-59 minutes daily.  \n"
             f"**Moderate:** `{moderate_count}` users (30-59 min Very Active)"
         )
-    elif selected_intensity == "Light (30-59 min Very Active)":
+    elif selected_intensity == "Light (1-29 min Very Active)":
         filtered_df = filtered_df[(filtered_df['VeryActiveMinutes'] > 0) & (filtered_df['VeryActiveMinutes'] < 30)]
         intensity_desc = (
             "**Light Activity** users focus on **short walks, household chores, or standing activities** "
@@ -217,10 +219,13 @@ def show_activity_overview():
         )
 
     st.info(intensity_desc)
+    st.subheader(":material/bolt: Very Active vs. Sedentary Minutes")
+    col1, col2 = st.columns([2, 1])
 
-    col1, col2 = st.columns([1.2, 2])
     with col1:
-        st.subheader(":material/bolt: Very Active vs. Sedentary Minutes")
+        plot_active_vs_sedentary(filtered_df)
+
+    with col2:
         st.markdown("""
         - This graph compares **Very active vs. sedentary** time.  
         - **Sedentary Minutes (:material/weekend:)**: Time spent sitting or with little movement.  
@@ -228,15 +233,8 @@ def show_activity_overview():
         - **Higher Active Minutes** = More movement, better fitness!  
         - **More Sedentary Time?** Consider adding short walks or stretching!  
         """)
-
-    with col2:
-        plot_active_vs_sedentary(filtered_df)
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric(" :material/steps: Steps", f"{merged_df['TotalSteps'].mean():,.0f}", help="Average number of steps taken daily.")
-    col2.metric(" :material/local_fire_department: Calories", f"{merged_df['Calories'].mean():,.0f}", help="Average daily calories burned.")
-    col3.metric(" :material/bedtime: Sleep (hrs)", f"{merged_df['SleepMinutes'].mean() / 60:.1f}", help="Average sleep duration per night.")
-    col4.metric(":material/bolt: Active Minutes", f"{merged_df['VeryActiveMinutes'].mean():,.0f}", help="Average active minutes per day.")
+        
+    display_activity_metrics(filtered_df)
     
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -492,8 +490,8 @@ if 'page' not in st.session_state:
 # Determine which page to show
 if st.session_state.page == "Home":
     show_home(merged_df)
-elif st.session_state.page == "Health & Activity Summary":
-    show_activity_overview()
+elif st.session_state.page == "Users Summary":
+    show_Users_Summary()
 elif st.session_state.page == "Leaderboard":
     leaderboard_page(metrics_df, champions)
 elif st.session_state.page == "User Insights":

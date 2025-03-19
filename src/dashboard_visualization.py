@@ -342,7 +342,6 @@ def plot_steps_trends(data):
     )
 
     fig.update_layout(
-        title=dict(text="Daily Step Trends", font=dict(size=20, color="#333")),
         xaxis_title="Date",
         yaxis_title="Steps Taken",
         hovermode="x unified",
@@ -354,13 +353,13 @@ def plot_steps_trends(data):
 def plot_calories_trends(data):
     fig = px.histogram(
         data, x="Calories",
+        title="Calories Burned Over Time",
         labels={"Calories": "Calories Burned"},
         color_discrete_sequence=["#ff5733"],
         nbins=20
     )
 
     fig.update_layout(
-        title=dict(text="Calories Burned Over Time", font=dict(size=20, color="#333")),
         xaxis_title="Calories Burned",
         yaxis_title="Frequency",
         template="seaborn"
@@ -377,12 +376,12 @@ def plot_sleep_trends(data):
         data, 
         x="ActivityDate", 
         y="SleepMinutes", 
+        title="Sleep Duration Over Time",
         labels={"SleepMinutes": "Minutes Asleep", "ActivityDate": "Date"},
         color_discrete_sequence=["#4B0082"]  # Purple color
     )
     
     fig.update_layout(
-        title=dict(text="Sleep Duration Over Time", font=dict(size=20, color="#333")),
         xaxis_title="Date",
         yaxis_title="Minutes Asleep",
         hovermode="x unified",
@@ -406,6 +405,7 @@ def plot_activity_intensity(df):
         values='Minutes', 
         hole=0.4, 
         color='Activity Level',
+        title="Activity Intensity Breakdown",
         color_discrete_map={
             "SedentaryMinutes": "#264653",  # Dark blue
             "LightlyActiveMinutes": "#2A9D8F",  # Teal
@@ -418,9 +418,6 @@ def plot_activity_intensity(df):
     fig1.update_traces(
         textinfo="percent+label",
         pull=[0.1 if m == intensity_df['Minutes'].max() else 0 for m in intensity_df['Minutes']]
-    )
-    fig1.update_layout(
-        title=dict(text="Activity Intensity Breakdown", font=dict(size=20, color="#333")),
     )
 
     st.plotly_chart(fig1, use_container_width=True)
@@ -440,12 +437,12 @@ def plot_heart_rate_trends(df):
 
     fig = px.line(
         daily_heart_rate_filtered, x='ActivityDate', y='HeartRate',
+        title="Heart Rate Trends (Excluding 66 BPM)",
         labels={'HeartRate': 'Heart Rate (BPM)', 'ActivityDate': 'Date'},
         color_discrete_sequence=['#d62728']
     )
 
     fig.update_layout(
-        title=dict(text="Heart Rate Trends (Excluding 66 BPM)", font=dict(size=20, color="#333")),
         xaxis_title="Date",
         yaxis_title="Heart Rate (BPM)",
         font=dict(family="Arial", size=14, color="black"),
@@ -468,9 +465,8 @@ def plot_active_vs_sedentary(df):
     )
 
     fig.update_layout(
-        title=dict(text="Very Active vs. Sedentary Minutes", font=dict(size=20, color="#333")),
-        xaxis_title=":material/scene:Sedentary Minutes",
-        yaxis_title=":material/fitness_center: Very Active Minutes",
+        xaxis_title="Sedentary Minutes",
+        yaxis_title="Very Active Minutes",
         template="plotly_white"
     )
 
@@ -482,12 +478,12 @@ def plot_step_distribution_for_all_user(df):
     fig = px.histogram(
         df, 
         x='TotalSteps', 
+        title="Step Distribution for All Users", 
         nbins=20, 
         color_discrete_sequence=["#008000"]
     )
 
     fig.update_layout(
-        title=dict(text="Step Distribution", font=dict(size=20, color="#333")),
         xaxis=dict(title="Total Steps"),
         yaxis=dict(title="Frequency"),
         hovermode="x unified",
@@ -500,14 +496,14 @@ def plot_steps_vs_calories(df):
     fig = px.scatter(
         df, 
         x='TotalSteps', 
-        y='Calories', 
+        y='Calories',
+        title="Steps vs. Calories Burned",
         labels={"TotalSteps": "Total Steps", "Calories": "Calories Burned"},
         color="Calories",
         color_continuous_scale="greens"
     )
 
     fig.update_layout(
-        title=dict(text="Steps vs. Calories Burned", font=dict(size=20, color="#333")),
         xaxis_title="Steps Taken",
         yaxis_title="Calories Burned",
         template="plotly_white"
@@ -520,14 +516,14 @@ def plot_sleep_vs_activity(df):
     fig = px.scatter(
         df, 
         x='SleepMinutes', 
-        y='VeryActiveMinutes', 
+        y='VeryActiveMinutes',
+        title="Sleep vs. Activity Level",
         labels={"SleepMinutes": "Minutes Asleep", "VeryActiveMinutes": "Very Active Minutes"},
         color="VeryActiveMinutes",
         color_continuous_scale="purples"
     )
 
     fig.update_layout(
-        title=dict(text="Sleep vs. Activity Level", font=dict(size=20, color="#333")),
         xaxis_title="Sleep Minutes",
         yaxis_title="Very Active Minutes",
         template="plotly_white"
