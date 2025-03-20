@@ -44,17 +44,20 @@ if "page" not in st.session_state:
 # --------------------------
 def display_activity_metrics(merged_df):
     
-    # Compute averages
-    avg_steps = merged_df["TotalSteps"].mean()
-    avg_calories = merged_df["Calories"].mean()
-    avg_sleep_hours = merged_df["SleepMinutes"].mean() / 60 
-    avg_active_minutes = merged_df["VeryActiveMinutes"].mean()
+    numeric_cols = merged_df.select_dtypes(include=["number"]).columns  
+    daily_avg = merged_df.groupby("ActivityDate")[numeric_cols].mean()
+
+
+    avg_steps = daily_avg["TotalSteps"].mean()
+    avg_calories = daily_avg["Calories"].mean()
+    avg_sleep_minutes = daily_avg["SleepMinutes"].mean()
+    avg_active_minutes = daily_avg["VeryActiveMinutes"].mean()
 
     col1, col2, col3, col4 = st.columns(4)
     
     col1.metric(" :material/steps: Steps", f"{avg_steps:,.0f} steps", help="Average number of steps taken daily.")
     col2.metric(" :material/local_fire_department: Calories", f"{avg_calories:,.0f} kcal", help="Average daily calories burned.")
-    col3.metric(" :material/bedtime: Sleep (hrs)", f"{avg_sleep_hours:.1f} hrs", help="Average sleep duration per night.")
+    col3.metric(" :material/bedtime: Sleep", f"{avg_sleep_minutes:.1f} min", help="Average sleep duration per night.")
     col4.metric(":material/bolt: Active Minutes", f"{avg_active_minutes:,.0f} min", help="Average active minutes per day.")
 
     st.markdown("---")
@@ -68,7 +71,10 @@ def show_home(merged_df):
     # --------------------------
     st.markdown(f"""
     ### :material/info: About This Dashboard
-    The dashboard presents visualizations and analysis of Fitbit fitness and health tracking data collected from  3/12/2016 to 4/9/2016.
+    The dashboard features statistical summaries, 
+    interactive visualizations, and in-depth analysis of Fitbit fitness 
+    and health tracking data from 33 users with valid activity records 
+    tracked between March 12 and April 12, 2016.
     
     This dashboard explores relationships between fitness and health metrics. It not only presents data summaries but also provides meaningful insights to help users understand trends and behaviors.
 
@@ -158,29 +164,25 @@ def setup_sidebar():
 # --------------------------
 # Sidebar activity overview page
 # --------------------------
-def setup_sidebar_Users_Summary():
+def setup_sidebar_Users_Summary(merged_df):
     with st.sidebar:
         setup_sidebar() 
 
         selected_intensity = st.radio(
             ":material/filter_alt: Filter Users by Intensity:",
-            ["All", "Heavy (≥ 60 min Very Active)", "Moderate (30-59 min Very Active)", "Light (1-29 min Very Active)"],
+            ["All Users", "Heavy (60+ min vigorous exercise)", "Moderate (30-59 min moderate activity)", "Light (1-29 min light movement)"],
             index=0
         )
-
-        total_days = merged_df["ActivityDate"].nunique()
-        st.subheader(":material/calendar_month: Total Days Tracked")
-        st.info(f"Data covers **{total_days} days** of Fitbit activity.")
-        
+    
         return selected_intensity
 
 # --------------------------
 # Users Summary
 # --------------------------
-def show_Users_Summary():
-    st.header("Users Summary") 
+def show_Users_Summary(merged_df):
+    st.header(":material/groups: Users Summary") 
 
-    selected_intensity = setup_sidebar_Users_Summary()
+    selected_intensity = setup_sidebar_Users_Summary(merged_df)
 
     filtered_df = merged_df.copy()
     # Count users based on the 'Class' column in merged_df
@@ -189,22 +191,22 @@ def show_Users_Summary():
     light_count = merged_df[merged_df["Class"] == "Light"]["Id"].nunique()
 
 
-    if selected_intensity == "Heavy (≥ 60 min Very Active)":
-        filtered_df = filtered_df[filtered_df['VeryActiveMinutes'] >= 60]
-        intensity_desc = (
+    if selected_intensity == "Heavy (60+ min vigorous exercise)":
+            filtered_df = filtered_df[filtered_df["Class"] == "Heavy"]
+            intensity_desc = (
             "**Heavy Activity** users engage in **intense workouts** "
             "(e.g., running, HIIT, intense cycling) for over 60 minutes daily.  \n"
-            f"**Heavy:** `{heavy_count}` users (≥ 60 min Very Active)"
+            f"**Heavy:** `{heavy_count}` users (+ 60 min Very Active)"
         )
-    elif selected_intensity == "Moderate (30-59 min Very Active)":
-        filtered_df = filtered_df[(filtered_df['VeryActiveMinutes'] >= 30) & (filtered_df['VeryActiveMinutes'] < 60)]
+    elif selected_intensity == "Moderate (30-59 min moderate activity)":
+        filtered_df = filtered_df[filtered_df["Class"] == "Moderate"]
         intensity_desc = (
             "**Moderate Activity** users engage in **brisk walking, jogging, or moderate sports** "
             "for 30-59 minutes daily.  \n"
             f"**Moderate:** `{moderate_count}` users (30-59 min Very Active)"
         )
-    elif selected_intensity == "Light (1-29 min Very Active)":
-        filtered_df = filtered_df[(filtered_df['VeryActiveMinutes'] > 0) & (filtered_df['VeryActiveMinutes'] < 30)]
+    elif selected_intensity == "Light (1-29 min light movement)":
+        filtered_df = filtered_df[filtered_df["Class"] == "Light"]
         intensity_desc = (
             "**Light Activity** users focus on **short walks, household chores, or standing activities** "
             "for 1-29 minutes daily.  \n"
@@ -219,6 +221,9 @@ def show_Users_Summary():
         )
 
     st.info(intensity_desc)
+    st.subheader("Dynamic Activity Averages")
+    display_activity_metrics(filtered_df)
+    
     st.subheader(":material/bolt: Very Active vs. Sedentary Minutes")
     col1, col2 = st.columns([2, 1])
 
@@ -226,38 +231,113 @@ def show_Users_Summary():
         plot_active_vs_sedentary(filtered_df)
 
     with col2:
-        st.markdown("""
-        - This graph compares **Very active vs. sedentary** time.  
-        - **Sedentary Minutes (:material/weekend:)**: Time spent sitting or with little movement.  
-        - **Very Active Minutes (:material/directions_run:)**: Time spent doing high-intensity activities.  
-        - **Higher Active Minutes** = More movement, better fitness!  
-        - **More Sedentary Time?** Consider adding short walks or stretching!  
+        # Extract summary statistics from the filtered data
+        avg_sedentary = filtered_df["SedentaryMinutes"].mean()
+        avg_active = filtered_df["VeryActiveMinutes"].mean()
+        max_active = filtered_df["VeryActiveMinutes"].max()
+        sedentary_category = "Low" if avg_sedentary < 600 else "High"
+
+        st.markdown(f"""
+        **Data Breakdown**  
+        - **Avg. Sedentary Time:** `{avg_sedentary:.1f}` min/day (**{sedentary_category} Sedentary Lifestyle**)  
+        - **Avg. Active Time:** `{avg_active:.1f}` min/day  
+        - **Max Active Minutes Recorded:** `{max_active}` min  
+
+        **:material/pin_drop: Insights**  
+        - **More movement = Less sedentary time!**  
+        - **Darker dots in the graph?** More calories burned!  
+        - **Too much sitting?** Try standing/stretching breaks!  
         """)
         
-    display_activity_metrics(filtered_df)
+    avg_steps = filtered_df["TotalSteps"].mean()
+    avg_calories = filtered_df["Calories"].mean()
+    avg_sleep = filtered_df["SleepMinutes"].mean() / 60  # Convert minutes to hours
+    top_step_users = filtered_df["TotalSteps"].quantile(0.90)  # Top 10% step count
     
-    col1, col2, col3 = st.columns(3)
-    with col1:
+    tab1, tab2, tab3 = st.tabs(["Steps Over Time", " Calories Burned", "Sleep Duration"])
+    with tab1:
+        st.subheader(":material/monitoring: Steps Over Time: Daily & 7-Day Rolling Average")
         plot_steps_trends(filtered_df)
-    with col2:
-        plot_calories_trends(filtered_df)
-    with col3:
-        plot_sleep_trends(filtered_df)
-
-    col4, col5, col6 = st.columns(3)
-    with col4:
-        plot_activity_intensity(filtered_df)
-    with col5:
-        plot_heart_rate_trends(filtered_df)
-    with col6:
-        plot_step_distribution_for_all_user(filtered_df)
-   
-    col7, col8 = st.columns(2)
-    with col7:
-        plot_steps_vs_calories(filtered_df)
-    with col8:
-        plot_sleep_vs_activity(filtered_df)
         
+        st.markdown(f'''
+        **Step Insights for {selected_intensity}:**  
+        1. The **average daily step count** is `{avg_steps:,.0f}` steps.  
+        2. The **top 10% most active users** take at least `{top_step_users:,.0f}` steps daily.  
+        3. **Step consistency** plays a bigger role than occasional high-step days.  
+        ''')
+        
+    with tab2:
+        st.subheader(":material/monitoring: Sweat Equity: How Movement Drives Calorie Burn")
+        plot_calories_trends(filtered_df)
+        
+        st.markdown(f'''
+        **Calorie Burn Insights for {selected_intensity}:**  
+        1. Users burn an average of **`{avg_calories:,.0f}` kcal per day**.  
+        2. **More active users** show a **stronger correlation** between intensity and calorie burn.  
+        3. **Sustainable moderate activity** often beats short bursts of extreme intensity.  
+        ''')
+
+    with tab3:
+        st.subheader(":material/monitoring: Restful Nights, Active Days: Breaking the Sedentary Cycle")
+        plot_sleep_trends(filtered_df)
+        
+        st.markdown(f'''
+        **Sleep Insights for {selected_intensity}:**  
+        1. Users sleep an average of **`{avg_sleep:.1f}` hours per night**.  
+        2. **Longer sleep durations** correlate with more stable activity patterns.  
+        3. **Irregular sleep (sleep debt)** often leads to increased sedentary behavior.  
+        ''')
+
+    avg_active_minutes = filtered_df["VeryActiveMinutes"].mean()
+    avg_sedentary_minutes = filtered_df["SedentaryMinutes"].mean()
+    avg_heart_rate = filtered_df["HeartRate"].mean() if "HeartRate" in filtered_df.columns else None
+    step_variability = filtered_df["TotalSteps"].std()
+    
+    tab4, tab5, tab6 = st.tabs(["Activity Intensity", "Heart Rate Trends", "Step Distribution"])
+    
+    with tab4:
+        st.subheader(":material/monitoring: Finding the Balance: Activity Intensity Patterns")
+        plot_activity_intensity(filtered_df)
+        
+        st.markdown(f'''
+        **Activity Intensity Insights for {selected_intensity}:**  
+        1. Users in this category average **`{avg_active_minutes:.0f}` minutes** of vigorous activity daily.  
+        2. The average sedentary time for this group is **`{avg_sedentary_minutes:.0f}` minutes per day**.  
+        3. **Balance between activity & rest is key**—sedentary users may benefit from **short movement breaks** every hour.  
+        ''')
+
+    with tab5:
+        st.subheader(":material/monitoring: Heart Rate & Activity: Fitness Levels in Motion")
+        plot_heart_rate_trends(filtered_df)
+        
+        if avg_heart_rate is not None:
+            st.markdown(f'''
+            **Heart Rate Insights for {selected_intensity}:**  
+            1. The **average heart rate** for this group is **`{avg_heart_rate:.0f}` BPM**.  
+            2. **Users with consistent activity** tend to show **lower resting heart rates** over time.  
+            3. **Heart rate spikes** align with high-intensity movement, but **proper cooldowns** are important.  
+            ''')
+        else:
+            st.warning(" No heart rate data available for this category.")
+
+    with tab6:
+        st.subheader(":material/monitoring: Step Distribution: Who Walks the Most?")
+        plot_step_distribution_for_all_user(filtered_df)
+        
+        st.markdown(f'''
+        **Step Distribution Insights for {selected_intensity}:**  
+        1. The step count variation for this group is **`{step_variability:,.0f}` steps** (higher = inconsistent movement).  
+        2. **Some users consistently reach** their step goals, while others show high variability.  
+        3. **Stable step patterns** often lead to more sustainable daily activity.  
+        ''')
+        
+    with st.expander("Relationships Between Metrics"):
+        col1, col2 = st.columns(2)
+        with col1:
+            plot_steps_vs_calories(filtered_df)
+        with col2:
+            plot_sleep_vs_activity(filtered_df)
+  
     add_footer() 
 
 
@@ -615,7 +695,6 @@ def individual_users():
     # Create a combined chart with dual y-axes for steps and calories    
     plot_individual_metrics(user_df) 
     
-
     # Display the dataframe
     display_df = user_df.copy()
     display_df['ActivityDate'] = pd.to_datetime(display_df['ActivityDate']).dt.strftime('%B %d, %Y')
@@ -642,7 +721,7 @@ if 'page' not in st.session_state:
 if st.session_state.page == "Home":
     show_home(merged_df)
 elif st.session_state.page == "Users Summary":
-    show_Users_Summary()
+    show_Users_Summary(merged_df)
 elif st.session_state.page == "Leaderboard":
     leaderboard_page(metrics_df, champions)
 elif st.session_state.page == "User Insights":

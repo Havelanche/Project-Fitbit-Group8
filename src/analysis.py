@@ -392,13 +392,7 @@ def merge_and_analyze_data(connection):
 
         for df in [minute_sleep, weight_log, hourly_calories, hourly_intensity, hourly_steps, heart_rate]:
             merged_df = pd.merge(merged_df, df, on=['Id', 'ActivityDate'], how='left')
-        print("Unique users in daily_activity:", daily_activity["Id"].nunique())
-        print("Unique users in heart_rate:", heart_rate["Id"].nunique())
-        print("Unique users in minute_sleep:", minute_sleep["Id"].nunique())
-        print("Unique users in weight_log:", weight_log["Id"].nunique())
-
-        # print("Columns after merge:", merged_df.columns)
-
+        
         merged_df['SleepMinutes'] = merged_df['SleepMinutes'].fillna(0)
         merged_df['WeightKg'] = merged_df['WeightKg'].fillna(merged_df['WeightKg'].median(skipna=True))
         merged_df['BMI'] = merged_df['BMI'].fillna(merged_df['BMI'].median(skipna=True))
@@ -481,7 +475,6 @@ def analyze_weight_log(connection):
     # Handle missing values by filling with mean per Id
     for col in ['WeightKg', 'Fat', 'BMI']:
         weight_df[col] = weight_df.groupby('Id')[col].transform(lambda x: x.fillna(x.mean()))
-
 
     # Visualize weight distribution by user
     plt.figure(figsize=(10, 6))

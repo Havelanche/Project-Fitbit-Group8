@@ -21,12 +21,25 @@ def show_calories_plot(merged_df):
     return fig
 
 def show_sleep_plot(merged_df):
+    merged_df["ActivityDate"] = pd.to_datetime(merged_df["ActivityDate"])  # Ensure datetime format
+
+    merged_df["SleepMinutes"] = merged_df["SleepMinutes"].fillna(0)
+
     daily_sleep = merged_df.groupby("ActivityDate")["SleepMinutes"].mean().reset_index()
+
+    missing_dates = pd.date_range(start=daily_sleep["ActivityDate"].min(), end=daily_sleep["ActivityDate"].max())
+    missing = set(missing_dates) - set(daily_sleep["ActivityDate"])
+    if missing:
+        print("Missing dates in sleep data:", missing)
+
+    # Plot
     fig = px.line(daily_sleep, x="ActivityDate", y="SleepMinutes",
                   title="Average Sleep Duration Over Time",
                   labels={"SleepMinutes": "Avg Sleep Minutes", "ActivityDate": "Date"},
                   template="plotly_dark")
+
     return fig
+
 
 def plot_step_distance_relationship(champ_daily_df):
     if champ_daily_df.empty:
@@ -329,40 +342,59 @@ def plot_steps_vs_sleep(champ_daily_df):
     
 def plot_steps_trends(data):
     if data.empty:
-        st.warning("⚠️ No step data available.")
+        st.warning(" No step data available.")
         return
+    data = data.sort_values("ActivityDate")  # Ensure chronological order
+    data["RollingAvgSteps"] = data["TotalSteps"].rolling(window=7).mean()  # 7-day moving avg
 
-    fig = px.bar(
-        data, 
-        x="ActivityDate", 
-        y="TotalSteps", 
-        title="Daily Step Trends",
-        labels={"TotalSteps": "Steps", "ActivityDate": "Date"},
-        color_discrete_sequence=["#1f77b4"]  # Blue color
-    )
+    fig = go.Figure()
+  # Plot actual daily steps
+    fig.add_trace(go.Scatter(
+        x=data["ActivityDate"], 
+        y=data["TotalSteps"], 
+        mode='lines+markers',
+        name='Daily Steps',
+        line=dict(color='#1F77B4', width=2),
+        marker=dict(size=5)
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=data["ActivityDate"], 
+        y=data["RollingAvgSteps"], 
+        mode='lines',
+        name='7-Day Moving Average',
+        line=dict(color='orange', width=3, dash="dash")
+    ))
 
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="Steps Taken",
         hovermode="x unified",
-        template="plotly_white"
+        template="plotly_dark",
+        font=dict(size=14)
     )
     st.plotly_chart(fig, use_container_width=True)
 
 
 def plot_calories_trends(data):
     fig = px.histogram(
-        data, x="Calories",
-        title="Calories Burned Over Time",
+        data, 
+        x="Calories",
         labels={"Calories": "Calories Burned"},
-        color_discrete_sequence=["#ff5733"],
-        nbins=20
+        color_discrete_sequence=["#E63946"], 
+        nbins=25,
+        opacity=0.8
     )
+    
+    mean_calories = data["Calories"].mean()
+    fig.add_vline(x=mean_calories, line_dash="dash", line_color="yellow", annotation_text=f"Avg: {mean_calories:.0f}")
 
     fig.update_layout(
         xaxis_title="Calories Burned",
         yaxis_title="Frequency",
-        template="seaborn"
+        template="plotly_dark",
+        font=dict(size=14),
+        bargap=0.2
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -372,21 +404,38 @@ def plot_sleep_trends(data):
         st.warning("No sleep data available.")
         return
 
-    fig = px.bar(
-        data, 
-        x="ActivityDate", 
-        y="SleepMinutes", 
-        title="Sleep Duration Over Time",
-        labels={"SleepMinutes": "Minutes Asleep", "ActivityDate": "Date"},
-        color_discrete_sequence=["#4B0082"]  # Purple color
-    )
-    
+    data = data.sort_values("ActivityDate")  # Ensure chronological order
+    data["RollingAvgSleep"] = data["SleepMinutes"].rolling(window=7).mean()  # 7-day moving avg
+
+    fig = go.Figure()
+
+    # Plot actual daily sleep
+    fig.add_trace(go.Scatter(
+        x=data["ActivityDate"], 
+        y=data["SleepMinutes"], 
+        mode='lines+markers',
+        name='Daily Sleep (mins)',
+        line=dict(color='#6A0DAD', width=2),
+        marker=dict(size=5)
+    ))
+
+    # Plot 7-day rolling average
+    fig.add_trace(go.Scatter(
+        x=data["ActivityDate"], 
+        y=data["RollingAvgSleep"], 
+        mode='lines',
+        name='7-Day Moving Average',
+        line=dict(color='cyan', width=3, dash="dash")
+    ))
+
     fig.update_layout(
         xaxis_title="Date",
         yaxis_title="Minutes Asleep",
         hovermode="x unified",
-        template="plotly_white"
+        template="plotly_dark",
+        font=dict(size=14)
     )
+
     
     st.plotly_chart(fig, use_container_width=True)
 
@@ -405,7 +454,6 @@ def plot_activity_intensity(df):
         values='Minutes', 
         hole=0.4, 
         color='Activity Level',
-        title="Activity Intensity Breakdown",
         color_discrete_map={
             "SedentaryMinutes": "#264653",  # Dark blue
             "LightlyActiveMinutes": "#2A9D8F",  # Teal
@@ -437,7 +485,6 @@ def plot_heart_rate_trends(df):
 
     fig = px.line(
         daily_heart_rate_filtered, x='ActivityDate', y='HeartRate',
-        title="Heart Rate Trends (Excluding 66 BPM)",
         labels={'HeartRate': 'Heart Rate (BPM)', 'ActivityDate': 'Date'},
         color_discrete_sequence=['#d62728']
     )
@@ -459,7 +506,6 @@ def plot_active_vs_sedentary(df):
         x='SedentaryMinutes', 
         y='VeryActiveMinutes', 
         color='Calories',
-        title=" Very Active vs. Sedentary Minutes",
         labels={"SedentaryMinutes": "Sedentary Minutes", "VeryActiveMinutes": "Very Active Minutes"},
         color_continuous_scale="blues"
     )
@@ -474,20 +520,24 @@ def plot_active_vs_sedentary(df):
 
 
 def plot_step_distribution_for_all_user(df):
-    fig = go.Figure()
     fig = px.histogram(
         df, 
         x='TotalSteps', 
-        title="Step Distribution for All Users", 
-        nbins=20, 
-        color_discrete_sequence=["#008000"]
+        nbins=25, 
+        color_discrete_sequence=["#2D6A4F"],  # Darker green
+        opacity=0.85
     )
+    
+    mean_steps = df["TotalSteps"].mean()
+    fig.add_vline(x=mean_steps, line_dash="dash", line_color="orange", annotation_text=f"Avg: {mean_steps:.0f}")
+
 
     fig.update_layout(
-        xaxis=dict(title="Total Steps"),
+        xaxis=dict(title="Total Steps", tickangle=-30),
         yaxis=dict(title="Frequency"),
-        hovermode="x unified",
-        template="seaborn"
+        template="plotly_dark",
+        font=dict(size=14),
+        bargap=0.2
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -497,7 +547,6 @@ def plot_steps_vs_calories(df):
         df, 
         x='TotalSteps', 
         y='Calories',
-        title="Steps vs. Calories Burned",
         labels={"TotalSteps": "Total Steps", "Calories": "Calories Burned"},
         color="Calories",
         color_continuous_scale="greens"
@@ -517,7 +566,6 @@ def plot_sleep_vs_activity(df):
         df, 
         x='SleepMinutes', 
         y='VeryActiveMinutes',
-        title="Sleep vs. Activity Level",
         labels={"SleepMinutes": "Minutes Asleep", "VeryActiveMinutes": "Very Active Minutes"},
         color="VeryActiveMinutes",
         color_continuous_scale="purples"
@@ -538,7 +586,6 @@ def plot_individual_metrics(user_df):
         user_df, 
         x='ActivityDate', 
         y='Calories',
-        title="Daily Calories Burned",
         markers=True,
         line_shape='linear',
         color_discrete_sequence=['green']  # Set specific color
@@ -555,7 +602,6 @@ def plot_individual_metrics(user_df):
         user_df, 
         x='ActivityDate', 
         y='TotalSteps',
-        title="Daily Steps",
         color_discrete_sequence=['blue']  # Set specific color
     )
     fig_steps.update_layout(
@@ -570,7 +616,6 @@ def plot_individual_metrics(user_df):
         user_df, 
         x='ActivityDate', 
         y='TotalDistance',
-        title="Daily Distance Traveled",
         markers=True,
         line_shape='linear',
         color_discrete_sequence=['orange']  # Set specific color
@@ -590,7 +635,6 @@ def plot_individual_metrics(user_df):
             user_df, 
             x='ActivityDate', 
             y=sleep_column,
-            title="Daily Sleep Duration",
             color_discrete_sequence=['purple']  # Set specific color
         )
         fig_sleep.update_layout(
