@@ -24,14 +24,21 @@ This project analyzes Fitbit data collected from 33 respondents in an Amazon sur
      
 ## Project Structure
 
-# **Fitbit-main.py**: The main script that processes the dataset and generates insights.
-# **dashboard.py**: The Streamlit-based dashboard for interactive data visualization.
-# **database.py**: Handles database interactions using SQLite.
-# **visualization.py**: Contains data plots and visual images.
-# **creative_analysis.py**: Looks for relations in an unique way.
-# **csv_data_wrangling.py**: loading, cleaning, and transforming the raw Fitbit data from CSV files into a structured format for analysis.
-# **dashboard_visualization.py**: contains functions for creating visualizations within the Streamlit dashboard.
-# **analysis.py**: contains function for analysing different behaviours & correlation of users.
+**fitbit-main.py:** The main script that processes the dataset and generates insights.
+
+**dashboard.py:** The Streamlit-based dashboard for interactive data visualization.
+
+**database.py:** Handles database interactions using SQLite.
+
+**visualization.py:** Contains data plots and visual images.
+
+**creative_analysis.py:** Looks for relations in a unique way.
+
+**csv_data_wrangling.py:** Loads, cleans, and transforms raw Fitbit data from CSV files into a structured format for analysis.
+
+**dashboard_visualization.py:** Contains functions for creating visualizations within the Streamlit dashboard.
+
+**analysis.py:** Contains functions for analyzing different behaviors & correlations of users.
 
 
 ## Installation & Setup
