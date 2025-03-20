@@ -47,17 +47,17 @@ Readme.md     data    src
 cd src
 ```
 Now you are at the right folder!
-### Running the Analysis
+### Running the Analysis in fitbit-main.py
 To execute the analysis and generate visualizations, run:
 ```bash
 python fitbit-main.py
 ```
-### Running the Dashboard
+### Running the Dashboard in dashboard.py
 To start the **Streamlit dashboard**, execute:
 ```bash
 streamlit run dashboard.py
 ```
-
+After reviewing the dashboard, you need to close it in terminal **manually** by pressing **control + x** otherwise it will keep operating!
 ## Features of the Dashboard
 - **General Statistics**: Overview of Fitbit users' activity levels.
 - **User-Specific Analysis**: Select an individual to view their fitness trends.
