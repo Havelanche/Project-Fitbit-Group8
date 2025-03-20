@@ -22,7 +22,8 @@ This project analyzes Fitbit data collected from 33 respondents in an Amazon sur
    - Implement a **Streamlit dashboard** to interactively explore the data.
    - Provide individual user statistics, time-based filtering, and sleep analysis.
      
-##Project Structure
+## Project Structure
+
 **Fitbit-main.py**: The main script that processes the dataset and generates insights.
 **dashboard.py**: The Streamlit-based dashboard for interactive data visualization.
 **database.py**: Handles database interactions using SQLite.
