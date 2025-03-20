@@ -40,15 +40,15 @@ You can simply clone and download it to desktop.
 ```bash
 cd path/to/your/project
 ```
-**until**
+**Make sure you are at the right folder to run the code by typing **ls** in terminal to check**
 ```bash
 ls
 ```
-**terminal shows the**
+**Until terminal shows the**
 ```bash 
 Readme.md     data    src
 ```
-**then goes to**
+**Then goes to**
 ```bash
 cd src
 ```
