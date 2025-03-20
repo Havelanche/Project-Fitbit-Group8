@@ -30,7 +30,6 @@ os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats
 ```
 ### Opening Files in Visual Studio Code
 **Open your terminal and navigate to the project directory**.
-**Make sure doing cd in orders !!!! e.g. You put the cloned file on desktop: desktop--> fitbit project--> src**
 ```bash
 cd path/to/your/project
 ```
