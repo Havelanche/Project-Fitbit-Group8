@@ -156,7 +156,6 @@ def analyze_sleep_vs_activity(connection):
     plot_sleep_vs_activity(df_merged)
     return df_merged, model
 
-
 # TASK 4: SLEEP VS. SEDENTARY MINUTES
 def analyze_sleep_vs_sedentary(connection):
     try:
@@ -492,7 +491,6 @@ def analyze_weight_log(connection):
 
 # lala's leaderboard dataframe funtion
 def compute_leader_metrics(connection):
-
     # Query for daily activity metrics
     daily_query = """
         SELECT 
@@ -568,10 +566,7 @@ def compute_leader_metrics(connection):
         metrics_map = {
             'steps_champion': 'TotalSteps',
             'distance_champion': 'TotalDistance',
-            'active_minutes_champion': 'TotalActiveMinutes',  # UPDATED: Changed to TotalActiveMinutes
-            # 'activity_intensity_champion': 'ActivityIntensityScore',  # ADDED: New champion type
             'calories_burned_champion': 'TotalCalories',
-            'sleep_quality_champion': 'TotalRestfulSleep'
         }
         
         for champion_name, col_name in metrics_map.items():

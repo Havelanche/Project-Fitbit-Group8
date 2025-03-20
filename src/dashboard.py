@@ -6,7 +6,7 @@ import plotly.express as px
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from database import connect_db
-from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep, show_calories_plot, show_sleep_plot, show_steps_plot, plot_individual_metrics, plot_steps_champion_chart, plot_distance_champion_chart, plot_intensity_champion_chart, plot_calories_champion_chart, plot_sleep_champion_chart)
+from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep, show_calories_plot, show_sleep_plot, show_steps_plot, plot_individual_metrics, plot_steps_champion_chart, plot_distance_champion_chart, plot_calories_champion_chart)
 from analysis import merge_and_analyze_data, compute_leader_metrics
 
 
@@ -32,7 +32,6 @@ try:
 except Exception as e:
     st.error(f"Failed to load data: {str(e)}")
     st.stop()
-
 
 # --------------------------
 # Ensure session state is set
@@ -63,7 +62,6 @@ def display_activity_metrics(merged_df):
 
     st.markdown("---")
     
-    
 def show_home(merged_df):
     """Homepage with navigation buttons"""
     st.markdown("<h1 style='text-align: center;'> Fitbit Health & Activity Dashboard</h1>", unsafe_allow_html=True)
@@ -72,13 +70,10 @@ def show_home(merged_df):
     # --------------------------
     st.markdown(f"""
     ### :material/info: About
-    This dashboard features statistical summaries, interactive visualizations, and in-depth analysis of Fitbit health 
-    and activity data 
-                
-    from 35 users (33 users with valid activity records) tracked between March 12 and April 12, 2016.
+    This dashboard analyzes Fitbit health and activity data from 35 users (33 users with valid activity records) over a one-month period (March-April 2016), 
     
-    It not only presents data summaries but also provides meaningful insights to help users understand trends and behaviors.
-
+    providing statistical summaries, interactive visualizations, and meaningful insights into user trends and behaviors.
+                
     The Fitbit app collects data from Fitbit’s wearables, providing key metrics on:
     - **Physical Activity** (steps, active minutes, exercise intensity)
     - **Sleep Tracking** (sleep duration, quality)
@@ -90,7 +85,7 @@ def show_home(merged_df):
     """)
     
     st.markdown("---")
-    st.markdown("### :material/pin_drop: Navigation")
+    st.markdown("### :material/pin_drop: Navigation (click twice)")
      # --------------------------
     # the buttons to the other pages
     # --------------------------
@@ -142,7 +137,7 @@ def show_home(merged_df):
 # --------------------------
 def setup_sidebar():
     with st.sidebar:
-        st.markdown("## Navigation")
+        st.markdown("## :material/pin_drop: Navigation")
 
         pages = {
             "Home": "Home",
@@ -168,9 +163,10 @@ def setup_sidebar():
 def setup_sidebar_Users_Summary(merged_df):
     with st.sidebar:
         setup_sidebar() 
+        st.title(":material/filter_alt: Choose Your Group")
 
         selected_intensity = st.radio(
-            ":material/filter_alt: Filter Users by Intensity:",
+            "Select Group to explore:",
             ["All Users", "Heavy (60+ min vigorous exercise)", "Moderate (30-59 min moderate activity)", "Light (1-29 min light movement)"],
             index=0
         )
@@ -190,7 +186,7 @@ def add_footer():
 # Users Summary
 # --------------------------
 def show_Users_Summary(merged_df):
-    st.header(":material/groups: Users Summary") 
+    st.header(":material/groups: Community Summary") 
 
     selected_intensity = setup_sidebar_Users_Summary(merged_df)
 
@@ -358,21 +354,19 @@ def leaderboard_page(metrics_df, champions):
     # Sidebar Section
     with st.sidebar:
         setup_sidebar() 
-        st.title(":material/search: Choose Your Champion")
+        st.title(":material/filter_alt: Choose Your Champion")
         
         # Champion selection radio buttons
         selected_champ = st.radio(
             "Select metric to highlight:", 
-            ["Step Master", "Distance Champion",  "Activity King/Queen",  "Calorie Burner", "Sleep Master"]
+            ["Step Master", "Distance Champion",  "Calorie Burner"]
         )
         
         # Map selection to champion keys
         champ_mapping = {
             "Step Master": "steps_champion",
             "Distance Champion": "distance_champion",
-            "Activity King/Queen": "active_minutes_champion",
-            "Calorie Burner": "calories_burned_champion",
-            "Sleep Master": "sleep_quality_champion"
+            "Calorie Burner": "calories_burned_champion"
         }
         
         # Get selected champion data
@@ -468,9 +462,7 @@ def leaderboard_page(metrics_df, champions):
     display_titles = {
         "steps_champion": ":material/steps: Step Master",
         "distance_champion": ":material/distance: Distance Champion",
-        "active_minutes_champion": ":material/sprint: Activity King/Queen",
-        "calories_burned_champion": ":material/local_fire_department: Calorie Burner",
-        "sleep_quality_champion": ":material/sleep_score: Sleep Champion"
+        "calories_burned_champion": ":material/local_fire_department: Calorie Burner"
     }
     st.subheader(f"{display_titles[champ_key]}: User {user_id}")
     
@@ -492,7 +484,6 @@ def leaderboard_page(metrics_df, champions):
                 value = fmt.format(champ_metrics[metric]) if metric in champ_metrics else "N/A"
                 st.metric(title, value, help=help_txt)
 
-    
     # =================================================================
     # NEW: Champion vs Average Performance Visualization Section
     st.divider()
@@ -518,15 +509,6 @@ def leaderboard_page(metrics_df, champions):
             - Identify longer journeys and consistent training patterns
             """)
             
-        elif champ_key == "active_minutes_champion":
-            fig = plot_intensity_champion_chart(conn, user_id)
-            st.plotly_chart(fig, use_container_width=True)
-            st.markdown("""
-            **Activity King/Queen Analysis:**
-            - Compare the champion's daily activity minutes (bars) against the community average (dashed line)
-            - Track activity patterns to identify optimal training days and recovery periods
-            """)
-            
         elif champ_key == "calories_burned_champion":
             fig = plot_calories_champion_chart(conn, user_id)
             st.plotly_chart(fig, use_container_width=True)
@@ -535,15 +517,7 @@ def leaderboard_page(metrics_df, champions):
             - Compare the champion's daily calorie burn (bars) against the community average (dashed line)
             - Identify high-energy expenditure days and patterns
             """)
-            
-        elif champ_key == "sleep_quality_champion":
-            fig = plot_sleep_champion_chart(conn, user_id)
-            st.plotly_chart(fig, use_container_width=True)
-            st.markdown("""
-            **Sleep Master Analysis:**
-            - Compare the champion's daily deep sleep minutes (bars) against the community average (dashed line)
-            - Identify quality sleep patterns and optimal rest days
-            """)
+
     except Exception as e:
         st.error(f"Error generating champion comparison chart: {str(e)}")
 
@@ -613,15 +587,19 @@ def leaderboard_page(metrics_df, champions):
 # --------------------------
 # Individual User Statistics
 def individual_users():
-    st.header(":material/patient_list: Individual User")
-    setup_sidebar()
-    st.sidebar.subheader("Filter Options")
+    st.header(":material/account_circle: Individual User")
 
-    # Clean up user IDs by removing decimals
-    user_ids = merged_df['Id'].unique().tolist()
-    clean_user_ids = [int(user_id) for user_id in user_ids]
-    selected_user_clean = st.sidebar.selectbox("Select User ID:", sorted(clean_user_ids))
-    selected_user = float(selected_user_clean)
+        # --------------------------
+    # Sidebar Section
+    with st.sidebar:
+        setup_sidebar()
+        st.title(":material/filter_alt: Choose Your User ID")
+
+        # Clean up user IDs by removing decimals
+        user_ids = merged_df['Id'].unique().tolist()
+        clean_user_ids = [int(user_id) for user_id in user_ids]
+        selected_user_clean = st.sidebar.selectbox("Select User ID:", sorted(clean_user_ids))
+        selected_user = float(selected_user_clean)
     
     # 1. Dynamic date range based on selected user
     # First filter by user to get their specific date range
