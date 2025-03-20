@@ -763,13 +763,13 @@ def plot_sleep_champion_chart(conn, user_id):
             x=user_df['ActivityDate'],
             y=user_df['DeepSleepMinutes'],
             name=f"Champion",
-            marker_color='green'  # Deep purple for sleep
+            marker_color='green'  
         )
     )
    
     # Update layout
     fig.update_layout(
-        title=f"Sleep Master: Daily Deep Sleep Over Time",
+        title=f"Daily Deep Sleep Over Time",
         xaxis=dict(
             title="Date",
             showticklabels=False,
@@ -823,7 +823,14 @@ def plot_steps_trends(data):
         yaxis_title="Steps Taken",
         hovermode="x unified",
         template="plotly_dark",
-        font=dict(size=14)
+        font=dict(size=14),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions above plot
+            xanchor="right",
+            x=1  # Right-aligned
+        )
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -835,18 +842,26 @@ def plot_calories_trends(data):
         labels={"Calories": "Calories Burned"},
         color_discrete_sequence=["#E63946"], 
         nbins=25,
-        opacity=0.8
+        opacity=0.8,
+        # name="Calories Burned" 
     )
     
     mean_calories = data["Calories"].mean()
     fig.add_vline(x=mean_calories, line_dash="dash", line_color="yellow", annotation_text=f"Avg: {mean_calories:.0f}")
 
     fig.update_layout(
-        xaxis_title="Calories Burned",
+        xaxis_title="Calories",
         yaxis_title="Frequency",
         template="plotly_dark",
         font=dict(size=14),
-        bargap=0.2
+        bargap=0.2,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions above plot
+            xanchor="right",
+            x=1  # Right-aligned
+        )
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -885,7 +900,14 @@ def plot_sleep_trends(data):
         yaxis_title="Minutes Asleep",
         hovermode="x unified",
         template="plotly_dark",
-        font=dict(size=14)
+        font=dict(size=14),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions above plot
+            xanchor="right",
+            x=1  # Right-aligned
+        )
     )
 
     
@@ -919,6 +941,14 @@ def plot_activity_intensity(df):
         textinfo="percent+label",
         pull=[0.1 if m == intensity_df['Minutes'].max() else 0 for m in intensity_df['Minutes']]
     )
+    fig1.update_layout(
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions above plot
+            xanchor="right",
+            x=1  # Right-aligned
+        ))
 
     st.plotly_chart(fig1, use_container_width=True)
 
@@ -948,6 +978,13 @@ def plot_heart_rate_trends(df):
         hovermode="x unified",
         template="plotly_white",
         margin=dict(l=40, r=40, t=60, b=40),
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,  # Positions above plot
+            xanchor="right",
+            x=1  # Right-aligned
+        )
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -1043,6 +1080,7 @@ def plot_individual_metrics(user_df):
         color_discrete_sequence=['green']  # Set specific color
     )
     fig_calories.update_layout(
+        title='Calories Over Time',
         xaxis_title="Date",
         yaxis_title="Calories",
         height=400
@@ -1057,6 +1095,7 @@ def plot_individual_metrics(user_df):
         color_discrete_sequence=['blue']  # Set specific color
     )
     fig_steps.update_layout(
+        title='Steps Over Time',
         xaxis_title="Date",
         yaxis_title="Steps",
         height=400
@@ -1073,6 +1112,7 @@ def plot_individual_metrics(user_df):
         color_discrete_sequence=['orange']  # Set specific color
     )
     fig_distance.update_layout(
+        title='Distance Over Time',
         xaxis_title="Date",
         yaxis_title="Distance (km)",
         height=400
@@ -1090,8 +1130,9 @@ def plot_individual_metrics(user_df):
             color_discrete_sequence=['purple']  # Set specific color
         )
         fig_sleep.update_layout(
+            title='Sleep Over Time',
             xaxis_title="Date",
-            yaxis_title="Sleep Duration (minutes)",
+            yaxis_title="Sleep (mins)",
             height=400
         )
         st.plotly_chart(fig_sleep, use_container_width=True)

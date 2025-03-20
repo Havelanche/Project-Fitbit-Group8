@@ -12,7 +12,7 @@ from analysis import merge_and_analyze_data, compute_leader_metrics
 
 # --------------------------
 # Page setup (must be FIRST Streamlit command)
-st.set_page_config(page_title="Fitbit Dashboard", layout="wide", page_icon=":material/sprint:")
+st.set_page_config(page_title="Fitbit Health & Activity Dashboard", layout="wide", page_icon=":material/sprint:")
 
 # --------------------------
 # Configuration
@@ -55,10 +55,11 @@ def display_activity_metrics(merged_df):
 
     col1, col2, col3, col4 = st.columns(4)
     
-    col1.metric(" :material/steps: Steps", f"{avg_steps:,.0f} steps", help="Average number of steps taken daily.")
-    col2.metric(" :material/local_fire_department: Calories", f"{avg_calories:,.0f} kcal", help="Average daily calories burned.")
-    col3.metric(" :material/bedtime: Sleep", f"{avg_sleep_minutes:.1f} min", help="Average sleep duration per night.")
-    col4.metric(":material/bolt: Active Minutes", f"{avg_active_minutes:,.0f} min", help="Average active minutes per day.")
+    col1.metric(":material/steps: Steps", f"{avg_steps:,.0f} ", help="Average number of steps taken daily.")
+    col2.metric(":material/local_fire_department: Calories", f"{avg_calories:,.0f} kcal", help="Average daily calories burned.")
+    col3.metric(":material/bolt: Active Minutes", f"{avg_active_minutes:,.0f} min", help="Average active minutes per day.")
+    col4.metric(":material/bedtime: Sleep", f"{avg_sleep_minutes:.1f} min", help="Average sleep duration per night.")
+
 
     st.markdown("---")
     
@@ -70,13 +71,13 @@ def show_home(merged_df):
     # About This Dashboard
     # --------------------------
     st.markdown(f"""
-    ### :material/info: About This Dashboard
-    The dashboard features statistical summaries, 
-    interactive visualizations, and in-depth analysis of Fitbit fitness 
-    and health tracking data from 33 users with valid activity records 
-    tracked between March 12 and April 12, 2016.
+    ### :material/info: About
+    This dashboard features statistical summaries, interactive visualizations, and in-depth analysis of Fitbit health 
+    and activity data 
+                
+    from 35 users (33 users with valid activity records) tracked between March 12 and April 12, 2016.
     
-    This dashboard explores relationships between fitness and health metrics. It not only presents data summaries but also provides meaningful insights to help users understand trends and behaviors.
+    It not only presents data summaries but also provides meaningful insights to help users understand trends and behaviors.
 
     The Fitbit app collects data from Fitbit’s wearables, providing key metrics on:
     - **Physical Activity** (steps, active minutes, exercise intensity)
@@ -89,14 +90,14 @@ def show_home(merged_df):
     """)
     
     st.markdown("---")
-    st.markdown("### :material/pin_drop: Navigate the Dashboard")
+    st.markdown("### :material/pin_drop: Navigation")
      # --------------------------
     # the buttons to the other pages
     # --------------------------
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("Users Summary", key="Users_Summary", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
+        if st.button("Community Summary", key="Users_Summary", help="View average statistics like calories, steps, and sleep", use_container_width=True, icon=":material/groups:"):
             st.session_state.page = "Users Summary"
 
     with col2:
@@ -116,7 +117,7 @@ def show_home(merged_df):
     # --------------------------
     # 3 plots
     # --------------------------   
-    st.markdown("### :material/trending_up: Data Visualizations")
+    st.markdown("### :material/trending_up: Data Visualization")
     
     tab1, tab2, tab3 = st.tabs(["Steps Over Time", "Calories Over Time", "Sleep Over Time"])
     
@@ -129,12 +130,12 @@ def show_home(merged_df):
     with tab3:
         st.plotly_chart(show_sleep_plot(merged_df), use_container_width=True)
     
-
     # --------------------------
     # Footer Section
     # --------------------------
     st.markdown("---")
-    st.markdown("<p style='text-align: center; font-size: 16px;'>  Developed by Honglin Zhu, Havelanche Troenokromo, Lala Zhao and Chenshuo Zhang </p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; font-size: 16px;'>  "
+    "Developed by Honglin Zhu, Havelanche Troenokromo, Qianying Zhao (Lala) and Chenshuo Zhang </p>", unsafe_allow_html=True)
 
 # --------------------------
 # Sidebar Navigation
@@ -145,7 +146,7 @@ def setup_sidebar():
 
         pages = {
             "Home": "Home",
-            "Users Summary": "Users Summary",
+            "Users Summary": "Community Summary",
             "Leaderboard": "Leaderboard",
             "User Insights": "Personal Stats"
         }
@@ -479,11 +480,11 @@ def leaderboard_page(metrics_df, champions):
         cols = st.columns(5)
         
         metric_config = {
-            'TotalSteps': ("Total Steps", "{:,.0f}", "Total number of steps taken"),
-            'TotalDistance': ("Total Distance", "{:.2f} km", "Total kilometers tracked"),
-            'TotalCalories': ("Total Calories", "{:,.0f} kcal", "Total estimated energy expenditure"),
-            'AverageIntensity': ("Total Average Intensity", "{:.2f}", "Average intensity state during active hours"),
-            'TotalRestfulSleep': ("Total Deep Sleep", "{:,.0f} mins", "Total minutes classified as asleep")
+            'TotalSteps': (":material/steps: Total Steps", "{:,.0f}", "Total number of steps taken"),
+            'TotalDistance': (":material/distance: Total Distance", "{:.2f} km", "Total kilometers tracked"),
+            'TotalCalories': (":material/local_fire_department: Total Calories", "{:,.0f} kcal", "Total estimated energy expenditure"),
+            'AverageIntensity': (":material/bolt: Total Average Intensity", "{:.2f}", "Average intensity state during active hours"),
+            'TotalRestfulSleep': (":material/bedtime: Total Deep Sleep", "{:,.0f} mins", "Total minutes classified as asleep")
         }
         
         for col, (metric, (title, fmt, help_txt)) in zip(cols, metric_config.items()):
@@ -673,39 +674,39 @@ def individual_users():
     average_intensive_minute = user_df['VeryActiveMinutes'].mean()
 
     # Display total metrics in a row
-    st.subheader(f":material/bar_chart: Activity Stats for User {selected_user_clean}")
+    st.subheader(f":material/bar_chart: Activity Stats: User {selected_user_clean}")
 
     total_cols = st.columns(5)  # Changed from 3 to 5 columns
 
     with total_cols[0]:
         st.metric(
-            label="Total Running Steps",
+            label=":material/steps: Total Steps",
             value=f"{total_steps:,}",
             help="Total number of steps recorded in the selected period"
         )
     with total_cols[1]:
         st.metric(
-            label="Total Calories Burned",
-            value=f"{total_calories:,}",
-            help="Total calories burned during the selected period"
-        )
-    with total_cols[2]:
-        st.metric(
-            label="Total Sleep Duration",
-            value=f"{total_sleep:,} mins",
-            help="Total minutes of sleep recorded during the selected period"
-        )
-    with total_cols[3]:
-        st.metric(
-            label="Total Distance",
+            label=":material/distance: Total Distance",
             value=f"{total_distance:.2f} km",
             help="Total distance traveled in kilometers during the selected period"
         )
-    with total_cols[4]:
+    with total_cols[2]:
         st.metric(
-            label="Total Intensive Activity",
+            label=":material/local_fire_department: Total Calories",
+            value=f"{total_calories:,} kcal",
+            help="Total calories burned during the selected period"
+        )
+    with total_cols[3]:
+        st.metric(
+            label=":material/bolt: Total Intensive Activity",
             value=f"{total_intensive_minute:,} mins",
             help="Total minutes of very active/intensive exercise during the selected period"
+        )
+    with total_cols[4]:
+        st.metric(
+            label=":material/bedtime: Total Sleep",
+            value=f"{total_sleep:,} mins",
+            help="Total minutes of sleep recorded during the selected period"
         )
 
     # Display daily average metrics in a row
@@ -713,35 +714,35 @@ def individual_users():
 
     with avg_cols[0]:
         st.metric(
-            label="Daily Steps",
+            label=":material/steps: Daily Steps",
             value=f"{average_steps:,.0f}",
             help="Average daily step count"
         )
     with avg_cols[1]:
         st.metric(
-            label="Daily Calories",
-            value=f"{average_calories:,.0f}",
-            help="Average daily calories burned"
-        )
-    with avg_cols[2]:
-        st.metric(
-            label="Daily Sleep",
-            value=f"{average_sleep:,.0f} mins",
-            help="Average daily sleep duration in minutes"
-        )
-    with avg_cols[3]:
-        st.metric(
-            label="Daily Distance",
+            label=":material/distance: Daily Distance",
             value=f"{average_distance:.2f} km",
             help="Average daily distance traveled in kilometers"
         )
-    with avg_cols[4]:
+    with avg_cols[2]:
         st.metric(
-            label="Daily Intensive Activity",
+            label=":material/local_fire_department: Daily Calories",
+            value=f"{average_calories:,.0f} kcal",
+            help="Average daily calories burned"
+        )
+    with avg_cols[3]:
+        st.metric(
+            label=":material/bolt: Daily Intensive Activity",
             value=f"{average_intensive_minute:.0f} mins",
             help="Average daily minutes of very active/intensive exercise"
         )
-        
+    with avg_cols[4]:
+        st.metric(
+            label=":material/bedtime: Daily Sleep",
+            value=f"{average_sleep:,.0f} mins",
+            help="Average daily sleep duration in minutes"
+        )
+     
     # Create a combined chart with dual y-axes for steps and calories    
     plot_individual_metrics(user_df) 
     
@@ -759,7 +760,7 @@ def individual_users():
     display_df.index.name = "Days"  # This names the index column
 
     # Display the raw data table
-    st.subheader(f":material/search: Detailed Stats for User {selected_user_clean}")
+    st.subheader(f":material/search: Detailed Stats: User {selected_user_clean}")
     st.dataframe(display_df)
     
     add_footer()
