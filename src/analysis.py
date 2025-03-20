@@ -513,6 +513,19 @@ def compute_leader_metrics(connection):
     """
     df_daily = SQL_acquisition(connection, daily_query)
     
+    # UPDATED: Modified activity intensity query - using daily activity data directly
+    # This creates alignment with the merged_df which uses daily_activity data
+    activity_query = """
+        SELECT 
+            CAST(Id AS INTEGER) AS Id,
+            AVG(VeryActiveMinutes) AS AvgActiveMinutes,
+            SUM(VeryActiveMinutes) AS TotalActiveMinutes,
+            COUNT(ActivityDate) AS ActivityDays
+        FROM daily_activity
+        GROUP BY Id
+    """
+    df_activity = SQL_acquisition(connection, activity_query)
+    
     # Query for average intensity
     hourly_query = """
         SELECT 
@@ -534,7 +547,7 @@ def compute_leader_metrics(connection):
     """
     df_sleep = SQL_acquisition(connection, sleep_query)
     
-        # Revised date query (no SQL-side date manipulation)
+    # Revised date query (no SQL-side date manipulation)
     date_query = """
         SELECT 
             CAST(Id AS INTEGER) AS Id,
@@ -547,16 +560,12 @@ def compute_leader_metrics(connection):
     # Initialize merged_df with daily data
     merged_df = df_daily.copy()
 
-    # Merge all dataframes (remove date range columns)
-    merge_order = [df_hourly, df_sleep, df_dates]
+    # Merge all dataframes (now including our new activity metrics)
+    merge_order = [df_activity, df_hourly, df_sleep, df_dates]
     for df in merge_order:
         if not df.empty and 'Id' in df.columns:
             merged_df = pd.merge(
                 merged_df, df, on="Id", how="left", validate="one_to_one")
-    
-    # After merging dataframes:
-    if 'UsageDays' in merged_df.columns:
-        merged_df['UsageDays'] = merged_df['UsageDays'].astype(int)  # Force integer type
     
     # Clean data
     merged_df = merged_df.fillna(0).replace([np.inf, -np.inf], 0)
@@ -566,9 +575,9 @@ def compute_leader_metrics(connection):
         metrics_map = {
             'steps_champion': 'TotalSteps',
             'distance_champion': 'TotalDistance',
-            'active_minutes_champion': 'VeryActiveMinutes',
+            'active_minutes_champion': 'TotalActiveMinutes',  # UPDATED: Changed to TotalActiveMinutes
+            # 'activity_intensity_champion': 'ActivityIntensityScore',  # ADDED: New champion type
             'calories_burned_champion': 'TotalCalories',
-            'average_intensity_champion': 'AverageIntensity',
             'sleep_quality_champion': 'TotalRestfulSleep'
         }
         

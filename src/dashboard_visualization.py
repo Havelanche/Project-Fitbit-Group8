@@ -1,8 +1,9 @@
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
-
 
 def show_steps_plot(merged_df):
     daily_avg = merged_df.groupby("ActivityDate")["TotalSteps"].mean().reset_index()
@@ -27,7 +28,8 @@ def show_sleep_plot(merged_df):
                   labels={"SleepMinutes": "Avg Sleep Minutes", "ActivityDate": "Date"},
                   template="plotly_dark")
     return fig
-
+#----------------------------------------------------------------
+#----------------------------------------------------------------
 def plot_step_distance_relationship(champ_daily_df):
     if champ_daily_df.empty:
         st.warning("No daily data available for this user.")
@@ -256,24 +258,41 @@ def plot_sleep_correlations(champ_daily_df):
     st.plotly_chart(fig)
 
 def plot_sleep_efficiency(champ_daily_df):
-    # Calculate sleep efficiency metric
-    champ_daily_df['SleepEfficiency'] = champ_daily_df['AsleepMinutes'] / (
-        champ_daily_df['AsleepMinutes'] + champ_daily_df['RestlessMinutes'] + champ_daily_df['AwakeMinutes'])
+    # Create a copy to avoid modifying the original dataframe
+    df = champ_daily_df.copy()
+    
+    # Calculate sleep efficiency metric with safeguard against division by zero
+    denominator = df['AsleepMinutes'] + df['RestlessMinutes'] + df['AwakeMinutes']
+    # Only calculate efficiency where sleep data exists
+    df['SleepEfficiency'] = np.where(denominator > 0, 
+                                     df['AsleepMinutes'] / denominator,
+                                     np.nan)
+    
+    # Filter out rows with missing sleep data
+    df_clean = df.dropna(subset=['SleepEfficiency'])
+    
+    # Add a message if there's insufficient data
+    if len(df_clean) < len(df) * 0.5:  # If more than half the data is missing
+        st.warning(f"Only {len(df_clean)} of {len(df)} days have sleep data.")
+    
+    if len(df_clean) == 0:
+        st.error("No sleep data available for this user.")
+        return
     
     fig = px.scatter(
-    champ_daily_df,
-    x='VeryActiveMinutes',
-    y='SleepEfficiency',
-    trendline='lowess',
-    color='TotalSteps',
-    size='Calories',
-    hover_data=['ActivityDate'],
-    labels={
-        'VeryActiveMinutes': 'Very Active Minutes',
-        'SleepEfficiency': 'Sleep Efficiency (%)',
-        'TotalSteps': 'Daily Steps'
-    },
-    color_continuous_scale=["white", "lightblue", "blue"]  # Color scale change
+        df_clean,
+        x='VeryActiveMinutes',
+        y='SleepEfficiency',
+        trendline='lowess',
+        color='TotalSteps',
+        size='Calories',
+        hover_data=['ActivityDate'],
+        labels={
+            'VeryActiveMinutes': 'Very Active Minutes',
+            'SleepEfficiency': 'Sleep Efficiency (%)',
+            'TotalSteps': 'Daily Steps'
+        },
+        color_continuous_scale=["white", "lightblue", "blue"]
     )
     
     # Optional: Add explicit colorbar title
@@ -283,7 +302,7 @@ def plot_sleep_efficiency(champ_daily_df):
             title='Daily Steps',
             tickvals=[5000, 10000, 15000],
             ticktext=['5k', '10k', '15k']),
-        margin=dict(l=10, r=10, t=50, b=20)) # Adjust margins
+        margin=dict(l=10, r=10, t=50, b=20))
     
     st.plotly_chart(fig)
 
@@ -324,9 +343,443 @@ def plot_steps_vs_sleep(champ_daily_df):
     )
     st.plotly_chart(fig)
     
-#----------------------------------------------------------------
-#----------------------------------------------------------------
+# Champion visualization functions for the leaderboard page
+def plot_steps_champion_chart(conn, user_id):
+    """
+    Plot bar chart for the Step Master showing total steps over time with average comparison
+    """
+    # Query for the selected user's data
+    user_query = f"""
+        SELECT 
+            ActivityDate, 
+            TotalSteps
+        FROM daily_activity
+        WHERE Id = {user_id}
+        ORDER BY ActivityDate
+    """
+    user_df = pd.read_sql(user_query, conn)
     
+    # Query for all users' average data
+    avg_query = """
+        SELECT 
+            ActivityDate, 
+            AVG(TotalSteps) as AvgSteps
+        FROM daily_activity
+        GROUP BY ActivityDate
+        ORDER BY ActivityDate
+    """
+    avg_df = pd.read_sql(avg_query, conn)
+    
+    # Convert dates to datetime
+    user_df['ActivityDate'] = pd.to_datetime(user_df['ActivityDate'])
+    avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
+    
+    # Sort both dataframes by date to ensure proper order
+    user_df = user_df.sort_values('ActivityDate')
+    avg_df = avg_df.sort_values('ActivityDate')
+    
+    # Align the average dataframe with user dataframe dates
+    # This ensures the average line connects points in the same order as the bars
+    merged_df = pd.merge(user_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
+    
+    # Create plot
+    fig = go.Figure()
+    
+    # Add line for average steps using the merged dataframe to ensure alignment
+    fig.add_trace(
+        go.Scatter(
+            x=merged_df['ActivityDate'],
+            y=merged_df['AvgSteps'],
+            name="Community",
+            line=dict(color='orange', width=2, dash='dash')
+        )
+    )
+
+    # Add bar chart for user's steps
+    fig.add_trace(
+        go.Bar(
+            x=user_df['ActivityDate'],
+            y=user_df['TotalSteps'],
+            name=f"Champion",
+            marker_color='green'
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title=f"Daily Steps Over Time",
+        xaxis=dict(
+            title="Date",
+            showticklabels=False,
+            type='category'
+        ),
+        yaxis=dict(
+            title="Steps",
+            rangemode='tozero'
+        ),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    return fig
+
+def plot_distance_champion_chart(conn, user_id):
+    """
+    Plot bar chart for the Distance Champion showing total distance over time with average comparison
+    """
+    # Query for the selected user's data
+    user_query = f"""
+        SELECT 
+            ActivityDate, 
+            TotalDistance
+        FROM daily_activity
+        WHERE Id = {user_id}
+        ORDER BY ActivityDate
+    """
+    user_df = pd.read_sql(user_query, conn)
+    
+    # Query for all users' average data
+    avg_query = """
+        SELECT 
+            ActivityDate, 
+            AVG(TotalDistance) as AvgDistance
+        FROM daily_activity
+        GROUP BY ActivityDate
+        ORDER BY ActivityDate
+    """
+    avg_df = pd.read_sql(avg_query, conn)
+    
+    # Convert dates to datetime
+    user_df['ActivityDate'] = pd.to_datetime(user_df['ActivityDate'])
+    avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
+    
+    # Sort both dataframes by date to ensure proper order
+    user_df = user_df.sort_values('ActivityDate')
+    avg_df = avg_df.sort_values('ActivityDate')
+    
+    # Align the average dataframe with user dataframe dates
+    merged_df = pd.merge(user_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
+    
+    # Create plot
+    fig = go.Figure()
+     
+    # Add line for average distance using the merged dataframe
+    fig.add_trace(
+        go.Scatter(
+            x=merged_df['ActivityDate'],
+            y=merged_df['AvgDistance'],
+            name="Community",
+            line=dict(color='orange', width=2, dash='dash')
+        )
+    )
+
+    # Add bar chart for user's distance
+    fig.add_trace(
+        go.Bar(
+            x=user_df['ActivityDate'],
+            y=user_df['TotalDistance'],
+            name=f"Champion",
+            marker_color='green'
+        )
+    )
+
+    # Update layout
+    fig.update_layout(
+        title=f"Daily Distance Over Time",
+        xaxis=dict(
+            title="Date",
+            showticklabels=False,
+            type='category'
+        ),
+        yaxis=dict(
+            title="Distance (km)",
+            rangemode='tozero'
+        ),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    return fig
+
+def plot_intensity_champion_chart(conn, user_id): 
+    """Plot bar chart for the Activity King/Queen showing average intensity over time with average comparison"""
+    
+    # Query for all hourly intensity data without filters
+    query = f"""
+    SELECT Id, ActivityHour, AverageIntensity 
+    FROM hourly_intensity 
+    ORDER BY ActivityHour
+    """
+    
+    # Load all data and handle date conversions in pandas
+    all_data = pd.read_sql(query, conn)
+    
+    # Convert ActivityHour to datetime
+    all_data['ActivityHour'] = pd.to_datetime(all_data['ActivityHour'])
+    
+    # Extract just the date part for grouping
+    all_data['ActivityDate'] = all_data['ActivityHour'].dt.date
+    
+    # Filter for the selected user
+    user_data = all_data[all_data['Id'] == user_id].copy()
+    
+    # Aggregate user data by date
+    user_daily_df = user_data.groupby('ActivityDate')['AverageIntensity'].mean().reset_index()
+    
+    # Calculate average across all users for each date
+    avg_df = all_data.groupby('ActivityDate')['AverageIntensity'].mean().reset_index()
+    avg_df.rename(columns={'AverageIntensity': 'AvgIntensity'}, inplace=True)
+    
+    # Convert dates to datetime for plotting
+    user_daily_df['ActivityDate'] = pd.to_datetime(user_daily_df['ActivityDate'])
+    avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
+    
+    # Sort both dataframes by date to ensure proper order
+    user_daily_df = user_daily_df.sort_values('ActivityDate')
+    avg_df = avg_df.sort_values('ActivityDate')
+    
+    # Align the average dataframe with user dataframe dates
+    merged_df = pd.merge(user_daily_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
+    
+    # Create plot
+    fig = go.Figure()
+        
+    # Add line for average intensity using the merged dataframe
+    fig.add_trace(
+        go.Scatter(
+            x=merged_df['ActivityDate'],
+            y=merged_df['AvgIntensity'],
+            name="Community",
+            line=dict(color='orange', width=2, dash='dash')
+        )
+    )
+
+    # Add bar chart for user's intensity
+    fig.add_trace(
+        go.Bar(
+            x=user_daily_df['ActivityDate'],
+            y=user_daily_df['AverageIntensity'],
+            name=f"Champion",
+            marker_color='green'
+        )
+    )
+ 
+    # Update layout
+    fig.update_layout(
+        title=f"Daily Average Intensity Over Time",
+        xaxis=dict(
+            title="Date",
+            showticklabels=False,
+            type='category'
+        ),
+        yaxis=dict(
+            title="Average Intensity",
+            rangemode='tozero'
+        ),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    return fig
+
+def plot_calories_champion_chart(conn, user_id):
+    """
+    Plot bar chart for the Calorie Burner showing total calories over time with average comparison
+    """
+    
+    # Query for the selected user's data
+    user_query = f"""
+        SELECT 
+            ActivityDate, 
+            Calories
+        FROM daily_activity
+        WHERE Id = {user_id}
+        ORDER BY ActivityDate
+    """
+    user_df = pd.read_sql(user_query, conn)
+    
+    # Query for all users' average data
+    avg_query = """
+        SELECT 
+            ActivityDate, 
+            AVG(Calories) as AvgCalories
+        FROM daily_activity
+        GROUP BY ActivityDate
+        ORDER BY ActivityDate
+    """
+    avg_df = pd.read_sql(avg_query, conn)
+    
+    # Convert dates to datetime
+    user_df['ActivityDate'] = pd.to_datetime(user_df['ActivityDate'])
+    avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
+    
+    # Sort both dataframes by date to ensure proper order
+    user_df = user_df.sort_values('ActivityDate')
+    avg_df = avg_df.sort_values('ActivityDate')
+    
+    # Align the average dataframe with user dataframe dates
+    merged_df = pd.merge(user_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
+    
+    # Create plot
+    fig = go.Figure()
+     
+    # Add line for average calories using the merged dataframe
+    fig.add_trace(
+        go.Scatter(
+            x=merged_df['ActivityDate'],
+            y=merged_df['AvgCalories'],
+            name="Community",
+            line=dict(color='orange', width=2, dash='dash')
+        )
+    )
+
+    # Add bar chart for user's calories
+    fig.add_trace(
+        go.Bar(
+            x=user_df['ActivityDate'],
+            y=user_df['Calories'],
+            name=f"Champion",
+            marker_color='green'
+        )
+    )
+    
+    # Update layout
+    fig.update_layout(
+        title=f"Daily Calories Over Time",
+        xaxis=dict(
+            title="Date",
+            showticklabels=False,
+            type='category'
+        ),
+        yaxis=dict(
+            title="Calories",
+            rangemode='tozero'
+        ),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    return fig
+
+def plot_sleep_champion_chart(conn, user_id):
+    """
+    Plot bar chart for the Sleep Master showing total deep sleep over time with average comparison
+    """
+    
+    # Query for the selected user's data - count of records with value = 1 (asleep)
+    user_query = f"""
+        SELECT 
+            DATE(date) as ActivityDate, 
+            COUNT(*) as DeepSleepMinutes
+        FROM minute_sleep
+        WHERE Id = {user_id} AND value = 1
+        GROUP BY DATE(date)
+        ORDER BY ActivityDate
+    """
+    user_df = pd.read_sql(user_query, conn)
+    
+    # Query for all users' average data
+    avg_query = """
+        SELECT 
+            DATE(date) as ActivityDate, 
+            AVG(sleep_count) as AvgDeepSleep
+        FROM (
+            SELECT 
+                Id,
+                DATE(date) as date,
+                COUNT(*) as sleep_count
+            FROM minute_sleep
+            WHERE value = 1
+            GROUP BY Id, DATE(date)
+        )
+        GROUP BY ActivityDate
+        ORDER BY ActivityDate
+    """
+    avg_df = pd.read_sql(avg_query, conn)
+    
+    # Convert dates to datetime
+    user_df['ActivityDate'] = pd.to_datetime(user_df['ActivityDate'])
+    avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
+    
+    # Sort both dataframes by date to ensure proper order
+    user_df = user_df.sort_values('ActivityDate')
+    avg_df = avg_df.sort_values('ActivityDate')
+    
+    # Align the average dataframe with user dataframe dates
+    merged_df = pd.merge(user_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
+    
+    # Create plot
+    fig = go.Figure()
+        
+    # Add line for average sleep using the merged dataframe
+    fig.add_trace(
+        go.Scatter(
+            x=merged_df['ActivityDate'],
+            y=merged_df['AvgDeepSleep'],
+            name="Community",
+            line=dict(color='orange', width=2, dash='dash')
+        )
+    )
+
+    # Add bar chart for user's sleep
+    fig.add_trace(
+        go.Bar(
+            x=user_df['ActivityDate'],
+            y=user_df['DeepSleepMinutes'],
+            name=f"Champion",
+            marker_color='green'  # Deep purple for sleep
+        )
+    )
+   
+    # Update layout
+    fig.update_layout(
+        title=f"Sleep Master: Daily Deep Sleep Over Time",
+        xaxis=dict(
+            title="Date",
+            showticklabels=False,
+            type='category'
+        ),
+        yaxis=dict(
+            title="Deep Sleep Minutes",
+            rangemode='tozero'
+        ),
+        hovermode="x unified",
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1
+        )
+    )
+    
+    return fig
+#----------------------------------------------------------------
+#----------------------------------------------------------------   
 def plot_steps_trends(data):
     if data.empty:
         st.warning("⚠️ No step data available.")

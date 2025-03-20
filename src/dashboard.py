@@ -5,8 +5,8 @@ import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
-from database import connect_db, get_unique_user_ids
-from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep, show_calories_plot, show_sleep_plot, show_steps_plot, plot_individual_metrics)
+from database import connect_db
+from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep, show_calories_plot, show_sleep_plot, show_steps_plot, plot_individual_metrics, plot_steps_champion_chart, plot_distance_champion_chart, plot_intensity_champion_chart, plot_calories_champion_chart, plot_sleep_champion_chart)
 from analysis import merge_and_analyze_data, compute_leader_metrics
 
 
@@ -174,6 +174,15 @@ def setup_sidebar_Users_Summary():
         
         return selected_intensity
 
+def add_footer():
+    st.divider()
+    st.caption('''
+        :material/warning: *Data Availability Note:*  
+        \nSome metrics may show incomplete records due to inherent gaps in wearable device data collection.  
+        \nMissing values occur when: Users didn't wear their device; Specific activities weren't tracked; Sleep/wake states couldn't be determined.  
+        \nAll analyses use available data.
+    ''')
+
 # --------------------------
 # Users Summary
 # --------------------------
@@ -260,8 +269,6 @@ def show_Users_Summary():
         
     add_footer() 
 
-
-
 # --------------------------
 # Leaderboard
 def leaderboard_page(metrics_df, champions):
@@ -275,9 +282,7 @@ def leaderboard_page(metrics_df, champions):
         # Champion selection radio buttons
         selected_champ = st.radio(
             "Select metric to highlight:", 
-            ["Step Master", "Distance Champion", 
-             "Activity King/Queen", "Calorie Burner", 
-             "Sleep Master"]
+            ["Step Master", "Distance Champion",  "Activity King/Queen",  "Calorie Burner", "Sleep Master"]
         )
         
         # Map selection to champion keys
@@ -394,11 +399,11 @@ def leaderboard_page(metrics_df, champions):
         cols = st.columns(5)
         
         metric_config = {
-            'TotalSteps': ("Steps", "{:,.0f}", "Total number of steps taken."),
-            'TotalDistance': ("Distance", "{:.2f} km", "Total kilometers tracked."),
-            'TotalCalories': ("Calories", "{:,.0f} kcal", "Total estimated energy expenditure."),
-            'AverageIntensity': ("Intensity", "{:.1f}", "Average intensity state during active hours."),
-            'TotalRestfulSleep': ("Sleep", "{:,.0f} mins", "Total minutes classified as asleep.")
+            'TotalSteps': ("Total Steps", "{:,.0f}", "Total number of steps taken"),
+            'TotalDistance': ("Total Distance", "{:.2f} km", "Total kilometers tracked"),
+            'TotalCalories': ("Total Calories", "{:,.0f} kcal", "Total estimated energy expenditure"),
+            'AverageIntensity': ("Total Average Intensity", "{:.2f}", "Average intensity state during active hours"),
+            'TotalRestfulSleep': ("Total Deep Sleep", "{:,.0f} mins", "Total minutes classified as asleep")
         }
         
         for col, (metric, (title, fmt, help_txt)) in zip(cols, metric_config.items()):
@@ -406,9 +411,64 @@ def leaderboard_page(metrics_df, champions):
                 value = fmt.format(champ_metrics[metric]) if metric in champ_metrics else "N/A"
                 st.metric(title, value, help=help_txt)
 
+    
+    # =================================================================
+    # NEW: Champion vs Average Performance Visualization Section
+    st.divider()
+    st.subheader(":material/compare_arrows: Champion Performance vs. Community Average")
+    
+    # Display appropriate chart based on selected champion type
+    try:
+        if champ_key == "steps_champion":
+            fig = plot_steps_champion_chart(conn, user_id)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown("""
+            **Step Master Analysis:**
+            - Compare the champion's daily step count (bars) against the community average (dashed line)
+            - Identify consistent patterns and peak performance days
+            """)
+            
+        elif champ_key == "distance_champion":
+            fig = plot_distance_champion_chart(conn, user_id)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown("""
+            **Distance Champion Analysis:**
+            - Compare the champion's daily distance covered (bars) against the community average (dashed line)
+            - Identify longer journeys and consistent training patterns
+            """)
+            
+        elif champ_key == "active_minutes_champion":
+            fig = plot_intensity_champion_chart(conn, user_id)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown("""
+            **Activity King/Queen Analysis:**
+            - Compare the champion's daily activity minutes (bars) against the community average (dashed line)
+            - Track activity patterns to identify optimal training days and recovery periods
+            """)
+            
+        elif champ_key == "calories_burned_champion":
+            fig = plot_calories_champion_chart(conn, user_id)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown("""
+            **Calorie Burner Analysis:**
+            - Compare the champion's daily calorie burn (bars) against the community average (dashed line)
+            - Identify high-energy expenditure days and patterns
+            """)
+            
+        elif champ_key == "sleep_quality_champion":
+            fig = plot_sleep_champion_chart(conn, user_id)
+            st.plotly_chart(fig, use_container_width=True)
+            st.markdown("""
+            **Sleep Master Analysis:**
+            - Compare the champion's daily deep sleep minutes (bars) against the community average (dashed line)
+            - Identify quality sleep patterns and optimal rest days
+            """)
+    except Exception as e:
+        st.error(f"Error generating champion comparison chart: {str(e)}")
+
     # =================================================================
     # Visualization Tabs
-    tab1, tab2, tab3 = st.tabs(["Analysis 1", "Analysis 2", "Analysis 3"])
+    tab1, tab2, tab3 = st.tabs(["Movement Metrics", "Calorie Intensity", "Rest Rhythm"])
     
     with tab1:
         st.subheader(":material/monitoring: Every Step Counts: Pedestrian Activity Correlation")
@@ -465,20 +525,10 @@ def leaderboard_page(metrics_df, champions):
                 1. **Acute Phase Alignment**: 
                 Simultaneous peaks in activity and sleep metrics indicate immediate exercise-sleep reciprocity, driven by adenosine metabolism and thermal regulation processes.
                 2. **Delayed Recovery Signaling**: 
-                Offset patterns (activity→sleep lag) reveal multi-stage recovery needs, particularly after high-intensity intervals requiring glycogen replenishment and muscle repair.
-                3. **Habitual Rhythm Encoding**: 
-                Repeating weekly/monthly cycles demonstrate entrainment of biological rhythms to lifestyle patterns through consistent behavioral reinforcement.''')
+                Offset patterns (activity→sleep lag) reveal multi-stage recovery needs, particularly after high-intensity intervals requiring glycogen replenishment and muscle repair.''')
+    
     add_footer() 
 
-
-def add_footer():
-    st.divider()
-    st.caption('''
-        :material/warning: *Data Availability Note:*  
-        \nSome metrics may show incomplete records due to inherent gaps in wearable device data collection.  
-        \nMissing values occur when: Users didn't wear their device; Specific activities weren't tracked; Sleep/wake states couldn't be determined.  
-        \nAll analyses use available data.
-    ''')
 # --------------------------
 # Individual User Statistics
 def individual_users():
@@ -632,7 +682,9 @@ def individual_users():
     # Display the raw data table
     st.subheader(f":material/search: Detailed Stats for User {selected_user_clean}")
     st.dataframe(display_df)
+    
     add_footer()
+
 # --------------------------
 # Navigation logic
 if 'page' not in st.session_state:
