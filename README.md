@@ -28,6 +28,13 @@ Ensure you have **Python 3.8+** installed & imported along with the following de
 ```bash
 os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
 ```
+## Getting Started
+**Clone the Repository**
+```bash
+https://github.com/Havelanche/Project-Fitbit-Group8
+```
+You can simply clone and download it to desktop.
+
 ### Opening Files in Visual Studio Code
 **Open your terminal and navigate to the project directory**.
 ```bash
