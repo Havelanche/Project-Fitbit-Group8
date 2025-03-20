@@ -40,7 +40,7 @@ You can simply clone and download it to desktop.
 ```bash
 cd path/to/your/project
 ```
-**Make sure you are at the right folder to run the code by typing **ls** in terminal to check**
+Make sure you are at the right folder to run the code by typing **ls** in terminal to check
 ```bash
 ls
 ```
