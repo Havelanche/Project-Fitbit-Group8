@@ -63,7 +63,7 @@ To start the **Streamlit dashboard**, execute:
 ```bash
 streamlit run dashboard.py
 ```
-After reviewing the dashboard, you need to close it in terminal **manually** by pressing **control + x** otherwise it will keep operating!
+After reviewing the dashboard, you need to close it in terminal **manually** by pressing **Control + Z** otherwise it will keep operating!
 ## Features of the Dashboard
 - **General Statistics**: Overview of Fitbit users' activity levels.
 - **User-Specific Analysis**: Select an individual to view their fitness trends.
