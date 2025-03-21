@@ -43,13 +43,11 @@ def compute_sleep_duration(connection):
 
 def sleep_vs_activity(connection):
     df_merged, model = analyze_sleep_vs_activity(connection)
-    #print(model.summary())
     plot_sleep_vs_activity(df_merged)
 
 
 def sleep_vs_sedentary(connection):
     df_merged, model = analyze_sleep_vs_sedentary(connection)
-        # Display regression summary
     print(model.summary())
     plot_sleep_vs_sedentary(df_merged)
         

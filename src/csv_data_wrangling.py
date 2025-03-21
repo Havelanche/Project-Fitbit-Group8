@@ -20,10 +20,9 @@ def clean_and_transform_data(df):
         print("\nTrackerDistance is identical to TotalDistance, dropping TrackerDistance column.")
         df = df.drop(columns=["TrackerDistance"])
 
-    duplicate_rows = df[df.duplicated(keep=False)]  # Get all duplicate rows (including the original)
+    duplicate_rows = df[df.duplicated(keep=False)] 
     total_duplicates = duplicate_rows.shape[0]
     
-    # If duplicates exist, print the total number of duplicates and the duplicate rows
     if total_duplicates > 0:
         print(f"\nTotal duplicate rows found: {total_duplicates}")
         print("Duplicate rows:")
@@ -31,16 +30,13 @@ def clean_and_transform_data(df):
     else:
         print("\nNo duplicate rows found.")
     
-    # Clean the dataframe: Remove duplicates, drop unnecessary columns, and sort the data
     df_cleaned = (
         df.copy()
-        .drop_duplicates()  # Remove duplicate rows
-        .assign(ActivityDate=lambda df: pd.to_datetime(df["ActivityDate"], format="%m/%d/%Y"))  # Convert ActivityDate to datetime
-        # .drop(columns=["LoggedActivitiesDistance"], errors="ignore")  # Drop unnecessary columns
-        .sort_values(by=["Id", "ActivityDate"])  # Sort by Id, then by ActivityDate
+        .drop_duplicates()
+        .assign(ActivityDate=lambda df: pd.to_datetime(df["ActivityDate"], format="%m/%d/%Y"))
+        .sort_values(by=["Id", "ActivityDate"])  
     )
     
-    # Ensure the correct data types for relevant columns
     df_cleaned["TotalSteps"] = df_cleaned["TotalSteps"].astype(int)  # Ensure steps are integers
     df_cleaned["TotalDistance"] = df_cleaned["TotalDistance"].astype(float)  # Ensure distance is a float
     

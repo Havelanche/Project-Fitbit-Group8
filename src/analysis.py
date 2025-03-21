@@ -36,20 +36,16 @@ def linear_regression(df):
     return model
 
 def check_activity_days(df):
-    # Group the data by user ID and count unique dates for each user
     user_activity_days = df.groupby('Id')['ActivityDate'].nunique().reset_index()
     user_activity_days.insert(0, 'Index', range(1, len(user_activity_days) + 1))
     user_activity_days.columns = ['User Index', 'User ID', 'Activity Days']
 
-    # Sort users by activity days for better visualization
     user_activity_days = user_activity_days.sort_values(by='Activity Days', ascending=False)
 
     plt.figure(figsize=(12, 6))
     
-    # Create a bar plot with colors mapped to activity days
     bars = plt.bar(user_activity_days['User Index'], user_activity_days['Activity Days'], color='skyblue', edgecolor='black')
 
-    # Apply a colormap effect based on activity days
     cmap = cm.get_cmap("YlOrRd")  
     max_days = max(user_activity_days['Activity Days'])
     for bar, days in zip(bars, user_activity_days['Activity Days']):
@@ -63,38 +59,31 @@ def check_activity_days(df):
 
     plt.show()
 
-    # Get the top 5 users with the most activity days
     top_5_users = user_activity_days.sort_values(by='Activity Days', ascending=False).head(5)
     print(f"\nTop 5 users with the most activity days:\n{top_5_users}")
 
     return user_activity_days, top_5_users
 
 def distance_days_correlation(unique_user_distance, user_activity_days):
-    # Merge the dataframes on 'User ID' to combine Total Distance and Activity Days
     merged_df = pd.merge(unique_user_distance, user_activity_days, on='User ID')
 
-    # Get the top 5 users with the most activity days
     top_5_users = merged_df.sort_values(by='Activity Days', ascending=False).head(5)
 
-    # Calculate Pearson correlation between Total Distance and Activity Days
     correlation = merged_df["Total Distance"].corr(merged_df["Activity Days"])
     print(f"\nPearson correlation between Total Distance and Activity Days: {correlation}")
 
-    # Scatter plot to visualize the relationship
     plt.figure(figsize=(12, 6))
-    # Plot all points (users) first
     scatter = plt.scatter(merged_df['Activity Days'], merged_df['Total Distance'], 
                           c=merged_df['Total Distance'], cmap='YlOrRd', edgecolor='black', label='Other Users')
     
-    # Highlight the top 5 users with larger and different color points
     plt.scatter(top_5_users['Activity Days'], top_5_users['Total Distance'], 
-                color='green', s=100, edgecolor='black', label='Top 5 Users')  # Larger red points
+                color='green', s=100, edgecolor='black', label='Top 5 Users')  
 
-    plt.colorbar(scatter, label='Total Distance')  # Add color bar to indicate distance
+    plt.colorbar(scatter, label='Total Distance') 
     plt.xlabel('Activity Days')
     plt.ylabel('Total Distance')
     plt.title('Scatter Plot of Total Distance vs. Activity Days')
-    plt.legend()  # Add a legend to differentiate points
+    plt.legend() 
     plt.grid(True)
     plt.show()  
 
@@ -114,7 +103,6 @@ def SQL_acquisition(connection, query):
     
 def analyze_sleep_vs_activity(connection):
     try:
-        # 🟢 Query Sleep Duration (in minutes)
         query_sleep = """
             SELECT Id, 
                    COUNT(*) AS SleepDuration
@@ -124,7 +112,6 @@ def analyze_sleep_vs_activity(connection):
         """
         df_sleep = SQL_acquisition(connection, query_sleep)
 
-        # 🟢 Query Total Activity Minutes (Avoid NULL values)
         query_activity = """
             SELECT Id, 
                    COALESCE(VeryActiveMinutes, 0) + 
@@ -136,11 +123,9 @@ def analyze_sleep_vs_activity(connection):
         """
         df_activity = SQL_acquisition(connection, query_activity)
 
-        # 🔹 Convert Data Types
         df_sleep["Id"] = df_sleep["Id"].astype(str)
         df_activity["Id"] = df_activity["Id"].astype(str)
 
-        # 🔹 Merge Data on `Id` and `ActivityDate`
         df_merged = df_activity.merge(df_sleep, on=["Id"], how="inner")
 
         if df_merged.empty:
@@ -159,7 +144,6 @@ def analyze_sleep_vs_activity(connection):
 # TASK 4: SLEEP VS. SEDENTARY MINUTES
 def analyze_sleep_vs_sedentary(connection):
     try:
-        # 🟢 Query Sleep Duration (in minutes)
         query_sleep = """
             SELECT Id, 
                    COUNT(*) AS SleepDuration
@@ -169,7 +153,6 @@ def analyze_sleep_vs_sedentary(connection):
         """
         df_sleep = SQL_acquisition(connection, query_sleep)
 
-        # 🟢 Query Sedentary Minutes
         query_sedentary = """
             SELECT Id, 
                    COALESCE(SedentaryMinutes, 0) AS SedentaryMinutes
@@ -179,14 +162,11 @@ def analyze_sleep_vs_sedentary(connection):
         """
         df_sedentary = SQL_acquisition(connection, query_sedentary)
 
-        # 🔹 Convert Data Types to Ensure Consistency
         df_sleep["Id"] = df_sleep["Id"].astype(str)
         df_sedentary["Id"] = df_sedentary["Id"].astype(str)
 
-        # 🔹 Merge Data on `Id` and `ActivityDate`
         df_merged = df_sedentary.merge(df_sleep, on=["Id"], how="inner")
 
-        # 🚨 Check for Empty DataFrame
         if df_merged.empty:
             print("Error: Merged dataframe is empty. Check date formats.")
             return None
@@ -272,23 +252,19 @@ def get_weather_and_daily_activity(connection, df_weather):
     query_steps = """
     SELECT ActivityDate, AVG(TotalSteps) AS TotalSteps FROM daily_activity GROUP BY ActivityDate
     """
-    # Fetch activity & distance data from database
     df_activity = SQL_acquisition(connection, query_active)
     df_distance = SQL_acquisition(connection, query_distance)
     df_steps = SQL_acquisition(connection, query_steps)
 
-    # Ensure date format consistency
     df_activity['ActivityDate'] = pd.to_datetime(df_activity['ActivityDate'])
     df_distance['ActivityDate'] = pd.to_datetime(df_distance['ActivityDate'])
     df_steps['ActivityDate'] = pd.to_datetime(df_steps['ActivityDate'])
 
     df_weather['datetime'] = pd.to_datetime(df_weather['datetime'])
     
-    # Merge activity & weather data
     df_activity_merged = df_activity.merge(df_weather[['datetime', 'temp']], left_on='ActivityDate', right_on='datetime', how='inner')
     df_distance_merged = df_distance.merge(df_weather[['datetime', 'temp']], left_on='ActivityDate', right_on='datetime', how='inner')
     df_steps_merged = df_steps.merge(df_weather[['datetime', 'temp']], left_on='ActivityDate', right_on='datetime', how='inner')
-    # Step 4: Create temperature bins
     temp_bins = list(range(int(df_weather['temp'].min()), int(df_weather['temp'].max()) + 5, 5))
     temp_labels = [f"{t}-{t+5}" for t in temp_bins[:-1]]
 
@@ -296,7 +272,6 @@ def get_weather_and_daily_activity(connection, df_weather):
     df_distance_merged['temp_bin'] = pd.cut(df_distance_merged['temp'], bins=temp_bins, labels=temp_labels)
     df_steps_merged['temp_bin'] = pd.cut(df_steps_merged['temp'], bins=temp_bins, labels=temp_labels)
 
-    # Step 5: Group by temperature bins
     df_final_activity = df_activity_merged.groupby('temp_bin', observed=False)[['LightlyActive', 'FairlyActive', 'VeryActive']].mean().reset_index()
     df_final_distance = df_distance_merged.groupby('temp_bin', observed=False)[['TotalDistance']].mean().reset_index()
     df_final_steps = df_steps_merged.groupby('temp_bin', observed=False)[['TotalSteps']].mean().reset_index()
@@ -439,16 +414,13 @@ def merge_and_analyze_data(connection):
 #Task 10: weekdays
 def activity_vs_sleep_insights(df):
     try:
-        # Ensure DayOfWeek column exists
         if 'DayOfWeek' not in df.columns:
             print("Error: 'DayOfWeek' column not found in merged data.")
             print("Available columns:", df.columns)
             return None
 
-        # Define weekends
         df['Weekend'] = df['DayOfWeek'].isin(['Saturday', 'Sunday'])
 
-        # Aggregate metrics by Weekend
         weekend_comparison = df.groupby('Weekend').agg({
             'TotalSteps': 'mean',
             'SleepMinutes': 'mean',
@@ -471,11 +443,9 @@ def analyze_weight_log(connection):
     query = "SELECT * FROM weight_log"
     weight_df = SQL_acquisition(connection, query)
 
-    # Handle missing values by filling with mean per Id
     for col in ['WeightKg', 'Fat', 'BMI']:
         weight_df[col] = weight_df.groupby('Id')[col].transform(lambda x: x.fillna(x.mean()))
 
-    # Visualize weight distribution by user
     plt.figure(figsize=(10, 6))
     sns.boxplot(x='Id', y='WeightKg', data=weight_df)
     plt.title('Weight Distribution by User')
@@ -483,7 +453,6 @@ def analyze_weight_log(connection):
     plt.tight_layout()
     plt.show()
 
-    # Show descriptive statistics for weight log
     print("\nWeight Log Descriptive Statistics:")
     print(weight_df.groupby('Id')[['WeightKg', 'Fat', 'BMI']].describe())
 
@@ -491,7 +460,6 @@ def analyze_weight_log(connection):
 
 # lala's leaderboard dataframe funtion
 def compute_leader_metrics(connection):
-    # Query for daily activity metrics
     daily_query = """
         SELECT 
             CAST(Id AS INTEGER) AS Id,
@@ -504,8 +472,6 @@ def compute_leader_metrics(connection):
     """
     df_daily = SQL_acquisition(connection, daily_query)
     
-    # UPDATED: Modified activity intensity query - using daily activity data directly
-    # This creates alignment with the merged_df which uses daily_activity data
     activity_query = """
         SELECT 
             CAST(Id AS INTEGER) AS Id,
@@ -517,7 +483,6 @@ def compute_leader_metrics(connection):
     """
     df_activity = SQL_acquisition(connection, activity_query)
     
-    # Query for average intensity
     hourly_query = """
         SELECT 
             CAST(Id AS INTEGER) AS Id,
@@ -527,7 +492,6 @@ def compute_leader_metrics(connection):
     """
     df_hourly = SQL_acquisition(connection, hourly_query)
     
-    # Query for restful sleep
     sleep_query = """
         SELECT 
             CAST(Id AS INTEGER) AS Id,
@@ -538,7 +502,6 @@ def compute_leader_metrics(connection):
     """
     df_sleep = SQL_acquisition(connection, sleep_query)
     
-    # Revised date query (no SQL-side date manipulation)
     date_query = """
         SELECT 
             CAST(Id AS INTEGER) AS Id,
@@ -548,17 +511,14 @@ def compute_leader_metrics(connection):
     """
     df_dates = SQL_acquisition(connection, date_query)
 
-    # Initialize merged_df with daily data
     merged_df = df_daily.copy()
 
-    # Merge all dataframes (now including our new activity metrics)
     merge_order = [df_activity, df_hourly, df_sleep, df_dates]
     for df in merge_order:
         if not df.empty and 'Id' in df.columns:
             merged_df = pd.merge(
                 merged_df, df, on="Id", how="left", validate="one_to_one")
     
-    # Clean data
     merged_df = merged_df.fillna(0).replace([np.inf, -np.inf], 0)
     champions = {}
     

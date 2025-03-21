@@ -20,12 +20,10 @@ current_dir = os.path.dirname(__file__)
 DB_PATH = os.path.join(current_dir, "..", "data", "fitbit_database.db")
 
 # --------------------------
-# Load and prepare data
 try:
     conn = connect_db(DB_PATH)
     merged_df, user_summaries = merge_and_analyze_data(conn)
     
-    # lala's leaderboard data (metrics and champions)
     metrics_df, champions = compute_leader_metrics(conn)
 
     conn.close()
@@ -33,9 +31,6 @@ except Exception as e:
     st.error(f"Failed to load data: {str(e)}")
     st.stop()
 
-# --------------------------
-# Ensure session state is set
-# --------------------------
 if "page" not in st.session_state:
     st.session_state.page = "Home"
 # --------------------------
@@ -587,7 +582,7 @@ def leaderboard_page(metrics_df, champions):
 # --------------------------
 # Individual User Statistics
 def individual_users():
-    st.header(":material/account_circle: Individual User")
+    st.header(":material/account_circle: Personal Stats")
 
         # --------------------------
     # Sidebar Section
@@ -652,7 +647,7 @@ def individual_users():
     average_intensive_minute = user_df['VeryActiveMinutes'].mean()
 
     # Display total metrics in a row
-    st.subheader(f":material/bar_chart: Activity Stats: User {selected_user_clean}")
+    st.subheader(f":material/bar_chart: Highlights: User {selected_user_clean}")
 
     total_cols = st.columns(5)  # Changed from 3 to 5 columns
 
@@ -729,18 +724,36 @@ def individual_users():
     display_df['ActivityDate'] = pd.to_datetime(display_df['ActivityDate']).dt.strftime('%B %d, %Y')
 
     # Remove specified columns
-    columns_to_remove = ['BMI', 'WeightKg', 'Id']
+    # Remove specified columns
+    columns_to_remove = ['BMI', 'WeightKg', 'Id', 'HeartRate', 'Class', 'StepTotal', 'AverageIntensity', 'FairlyActiveMinutes']
     display_columns = [col for col in display_df.columns if col not in columns_to_remove]
     display_df = display_df[display_columns]
+    column_display_names = {
+    'ActivityDate': 'Date',
+    'TotalSteps': 'Steps',
+    'Calories': 'Calories Burned',
+    'TotalDistance': 'Distance (km)',
+    'VeryActiveMinutes': 'Active Minutes',
+    'TotalMinutesAsleep': 'Sleep Duration',
+    'SedentaryMinutes': 'Inactive Time',
+    'LightlyActiveMinutes': 'Lightly Active Time',
+    'HourlyCalories': 'Kcal / hour',
+    'TotalIntensity': 'Intensity Minutes',
+    'SleepMinutes': 'Sleep Duration'
+    }
+
+    # Apply only to the columns that exist in your DataFrame
+    valid_renames = {k: v for k, v in column_display_names.items() if k in display_df.columns}
+    display_df = display_df.rename(columns=valid_renames)
 
     # Reset index to start from 1 instead of 0 and name it "Days"
     display_df.index = range(1, len(display_df) + 1)
     display_df.index.name = "Days"  # This names the index column
 
     # Display the raw data table
-    st.subheader(f":material/search: Detailed Stats: User {selected_user_clean}")
+    st.subheader(f":material/search: Detailed Stats for User {selected_user_clean}")
     st.dataframe(display_df)
-    
+    add_footer()
     add_footer()
 
 # --------------------------

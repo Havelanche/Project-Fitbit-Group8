@@ -19,7 +19,6 @@ def plot_distance_distribution(df):
     
     plt.figure(figsize=(12, 6))
     counts, bins, patches = plt.hist(df['Total Distance'], bins=10, edgecolor='black')
-    # Apply colormap to each patch based on its height (the number of users in each bin)
     for i in range(len(patches)):
         color = cm.YlOrRd(counts[i] / max(counts))  # Normalize count to range [0, 1] for colormap
         patches[i].set_facecolor(color)

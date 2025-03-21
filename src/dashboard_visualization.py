@@ -21,32 +21,24 @@ def show_calories_plot(merged_df):
     return fig
 
 def show_sleep_plot(merged_df):
-    merged_df["ActivityDate"] = pd.to_datetime(merged_df["ActivityDate"])  # Ensure datetime format
-
+    merged_df["ActivityDate"] = pd.to_datetime(merged_df["ActivityDate"])
     merged_df["SleepMinutes"] = merged_df["SleepMinutes"].fillna(0)
-
     daily_sleep = merged_df.groupby("ActivityDate")["SleepMinutes"].mean().reset_index()
-
     missing_dates = pd.date_range(start=daily_sleep["ActivityDate"].min(), end=daily_sleep["ActivityDate"].max())
     missing = set(missing_dates) - set(daily_sleep["ActivityDate"])
     if missing:
         print("Missing dates in sleep data:", missing)
-
-    # Plot
     fig = px.line(daily_sleep, x="ActivityDate", y="SleepMinutes",
                   title="Average Sleep Duration Over Time",
                   labels={"SleepMinutes": "Avg Sleep (mins)", "ActivityDate": "Date"},
                   template="plotly_dark")
-
     return fig
-#----------------------------------------------------------------
+
 def plot_step_distance_relationship(champ_daily_df):
     if champ_daily_df.empty:
         st.warning("No daily data available for this user.")
         return
-
     fig = go.Figure()
-    # Add Distance (Line)
     fig.add_trace(go.Scatter(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["TotalDistance"],
@@ -55,55 +47,47 @@ def plot_step_distance_relationship(champ_daily_df):
         yaxis="y2",
         mode="lines+markers"
     ))
-    # Add Steps (Bars)
     fig.add_trace(go.Bar(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["TotalSteps"],
         name="Steps",
         marker_color="blue"
     ))
-    # Update layout
     fig.update_layout(
         title=f"Steps vs. Distance",
         xaxis=dict(
             title="Dates",
             showticklabels=False,
-            type='category'  # Added to match other plots
+            type='category'
         ),
         yaxis=dict(
             title="Steps",
             side="left",
-            rangemode='tozero'  # Added axis range behavior
+            rangemode='tozero'
         ),
         yaxis2=dict(
             title="Distance (km)",
             side="right",
             overlaying="y",
-            rangemode='tozero'  # Added axis range behavior
+            rangemode='tozero'
         ),
         hovermode="x unified",
-        # Added horizontal legend configuration
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions above plot
+            y=1.02,
             xanchor="right",
-            x=1  # Right-aligned
+            x=1
         )
     )
-
     st.plotly_chart(fig)
 
 def plot_calories_vs_activity(champ_daily_df):
     if champ_daily_df.empty:
         st.warning("No daily data available for this user.")
         return
-
     champ_daily_df = champ_daily_df.sort_values(by="ActivityDate")
-
     fig = go.Figure()
-    
-    # Calories (Line)
     fig.add_trace(go.Scatter(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["Calories"],
@@ -112,101 +96,85 @@ def plot_calories_vs_activity(champ_daily_df):
         yaxis="y2",
         mode="lines+markers"
     ))
-    # Active Minutes (Bar)
     fig.add_trace(go.Bar(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["VeryActiveMinutes"],
         name="Very Active Minutes",
         marker_color="green"
     ))
-    # Layout
     fig.update_layout(
         title=f"Calories vs. Very Active Minutes",
         xaxis=dict(
             title="Dates",
             showticklabels=False,
-            type='category'  # Added to match first plot's date handling
+            type='category'
         ),
         yaxis=dict(
             title="Very Active Minutes",
             side="left",
-            rangemode='tozero'  # Added to match axis behavior
+            rangemode='tozero'
         ),
         yaxis2=dict(
             title="Calories (kcal)",
             side="right",
             overlaying="y",
-            rangemode='tozero'  # Added to match axis behavior
+            rangemode='tozero'
         ),
         hovermode="x unified",
-        # Added legend configuration to match first plot
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions legend just above the plot
+            y=1.02,
             xanchor="right",
-            x=1  # Right-aligns legend
+            x=1
         )
     )
     st.plotly_chart(fig)
 
 def plot_sleep_distribution(champ_daily_df):
-    # Check for required columns
     required_cols = ['AsleepMinutes', 'RestlessMinutes', 'AwakeMinutes', 'SedentaryMinutes']
     if champ_daily_df.empty or not all(col in champ_daily_df for col in required_cols):
         st.warning("No sleep data available for this user.")
         return
-
-    # Sort data by date
     champ_daily_df = champ_daily_df.sort_values(by="ActivityDate")
-
-    # Create figure
     fig = go.Figure()
-    
-    # Add stacked sleep state bars
     fig.add_trace(go.Bar(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["AsleepMinutes"],
         name='Deep Sleep',
-        marker_color='#2ca02c',  # Green
+        marker_color='#2ca02c',
         hoverinfo='y+name'
     ))
-    
     fig.add_trace(go.Bar(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["RestlessMinutes"],
         name='Restless Sleep',
-        marker_color='#ff7f0e',  # Orange
+        marker_color='#ff7f0e',
         hoverinfo='y+name'
     ))
-    
     fig.add_trace(go.Bar(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["AwakeMinutes"],
         name='Awake Time',
-        marker_color='#d62728',  # Red
+        marker_color='#d62728',
         hoverinfo='y+name'
     ))
-    
-    # Add sedentary line
     fig.add_trace(go.Scatter(
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["SedentaryMinutes"],
         name='Sedentary Time',
-        line=dict(color="blue", width=2),  # Gray
+        line=dict(color="blue", width=2),
         yaxis='y2',
         mode='lines+markers',
         hoverinfo='y+name'
     ))
-    
-    # Update layout
     fig.update_layout(
-        barmode='stack',  # Stack sleep states
+        barmode='stack',
         title=f"Sleep Quality vs. Sedentary Time",
         xaxis=dict(
             title="Dates",
             showticklabels=False,
-            type='category'  # Prevent date interpolation
+            type='category'
         ),
         yaxis=dict(
             title="Sleep (mins)",
@@ -228,17 +196,12 @@ def plot_sleep_distribution(champ_daily_df):
             x=1
         )
     )
-    
     st.plotly_chart(fig)
 
 def plot_sleep_correlations(champ_daily_df):
-    # Select relevant columns
     corr_df = champ_daily_df[['TotalSteps', 'TotalDistance', 'VeryActiveMinutes', 
                             'SedentaryMinutes', 'Calories', 'AsleepMinutes']]
-    
-    # Calculate correlations
     corr_matrix = corr_df.corr()
-    
     fig = px.imshow(
         corr_matrix,
         labels=dict(color="Correlation"),
@@ -247,41 +210,31 @@ def plot_sleep_correlations(champ_daily_df):
         color_continuous_scale='RdBu',
         zmin=-1,
         zmax=1)
-    
-    # Update layout for better label placement
     fig.update_layout(
         title="Sleep-Activity Correlation Matrix",
         xaxis=dict(
-            side='bottom',  # Move x-axis labels to top
-            tickangle=-15  # Angle labels for better readability
-        ),
-        yaxis=dict(
-            side='left',  # Keep y-axis on left
+            side='bottom',
             tickangle=-15
         ),
-        margin=dict(l=10, r=10, t=50, b=20) ) # Adjust margins
-    
-    # Improve text visibility
+        yaxis=dict(
+            side='left',
+            tickangle=-15
+        ),
+        margin=dict(l=10, r=10, t=50, b=20))
     fig.update_xaxes(showgrid=False)
     fig.update_yaxes(showgrid=False)
-    
     st.plotly_chart(fig)
 
 def plot_sleep_efficiency(champ_daily_df):
-    # Create a copy to avoid modifying the original dataframe
     df = champ_daily_df.copy()
     
-    # Calculate sleep efficiency metric with safeguard against division by zero
     denominator = df['AsleepMinutes'] + df['RestlessMinutes'] + df['AwakeMinutes']
-    # Only calculate efficiency where sleep data exists
     df['SleepEfficiency'] = np.where(denominator > 0, 
                                      df['AsleepMinutes'] / denominator,
                                      np.nan)
     
-    # Filter out rows with missing sleep data
     df_clean = df.dropna(subset=['SleepEfficiency'])
     
-    # Add a message if there's insufficient data
     if len(df_clean) < len(df) * 0.5:  # If more than half the data is missing
         st.warning(f"Only {len(df_clean)} of {len(df)} days have sleep data.")
     
@@ -305,7 +258,6 @@ def plot_sleep_efficiency(champ_daily_df):
         color_continuous_scale=["white", "lightblue", "blue"]
     )
     
-    # Optional: Add explicit colorbar title
     fig.update_layout(
         title='Sleep Efficiency vs Physical Activity',
         coloraxis_colorbar=dict(
@@ -319,7 +271,6 @@ def plot_sleep_efficiency(champ_daily_df):
 def plot_steps_vs_sleep(champ_daily_df):
     fig = go.Figure()
     
-    # Add steps trace
     fig.add_trace(go.Scatter(
         x=champ_daily_df['ActivityDate'],
         y=champ_daily_df['TotalSteps'],
@@ -328,7 +279,6 @@ def plot_steps_vs_sleep(champ_daily_df):
         yaxis='y1', mode="lines+markers"
     ))
     
-    # Add sleep trace
     fig.add_trace(go.Scatter(
         x=champ_daily_df['ActivityDate'],
         y=champ_daily_df['AsleepMinutes'],
@@ -342,13 +292,12 @@ def plot_steps_vs_sleep(champ_daily_df):
         yaxis=dict(title='Steps', side='left', rangemode='tozero'),
         yaxis2=dict(title='Sleep (mins)', side='right', overlaying='y', rangemode='tozero'),
         hovermode='x unified',
-                # Added horizontal legend configuration
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions above plot
+            y=1.02, 
             xanchor="right",
-            x=1  # Right-aligned
+            x=1 
         )
     )
     st.plotly_chart(fig)
@@ -380,22 +329,16 @@ def plot_steps_champion_chart(conn, user_id):
     """
     avg_df = pd.read_sql(avg_query, conn)
     
-    # Convert dates to datetime
     user_df['ActivityDate'] = pd.to_datetime(user_df['ActivityDate'])
     avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
     
-    # Sort both dataframes by date to ensure proper order
     user_df = user_df.sort_values('ActivityDate')
     avg_df = avg_df.sort_values('ActivityDate')
     
-    # Align the average dataframe with user dataframe dates
-    # This ensures the average line connects points in the same order as the bars
     merged_df = pd.merge(user_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
     
-    # Create plot
     fig = go.Figure()
     
-    # Add line for average steps using the merged dataframe to ensure alignment
     fig.add_trace(
         go.Scatter(
             x=merged_df['ActivityDate'],
@@ -405,7 +348,6 @@ def plot_steps_champion_chart(conn, user_id):
         )
     )
 
-    # Add bar chart for user's steps
     fig.add_trace(
         go.Bar(
             x=user_df['ActivityDate'],
@@ -415,7 +357,6 @@ def plot_steps_champion_chart(conn, user_id):
         )
     )
 
-    # Update layout
     fig.update_layout(
         title=f"Daily Steps Over Time",
         xaxis=dict(
@@ -533,40 +474,28 @@ def plot_intensity_champion_chart(conn, user_id):
     ORDER BY ActivityHour
     """
     
-    # Load all data and handle date conversions in pandas
     all_data = pd.read_sql(query, conn)
     
-    # Convert ActivityHour to datetime
     all_data['ActivityHour'] = pd.to_datetime(all_data['ActivityHour'])
-    
-    # Extract just the date part for grouping
     all_data['ActivityDate'] = all_data['ActivityHour'].dt.date
     
-    # Filter for the selected user
     user_data = all_data[all_data['Id'] == user_id].copy()
     
-    # Aggregate user data by date
     user_daily_df = user_data.groupby('ActivityDate')['AverageIntensity'].mean().reset_index()
     
-    # Calculate average across all users for each date
     avg_df = all_data.groupby('ActivityDate')['AverageIntensity'].mean().reset_index()
     avg_df.rename(columns={'AverageIntensity': 'AvgIntensity'}, inplace=True)
     
-    # Convert dates to datetime for plotting
     user_daily_df['ActivityDate'] = pd.to_datetime(user_daily_df['ActivityDate'])
     avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
     
-    # Sort both dataframes by date to ensure proper order
     user_daily_df = user_daily_df.sort_values('ActivityDate')
     avg_df = avg_df.sort_values('ActivityDate')
     
-    # Align the average dataframe with user dataframe dates
     merged_df = pd.merge(user_daily_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
     
-    # Create plot
     fig = go.Figure()
         
-    # Add line for average intensity using the merged dataframe
     fig.add_trace(
         go.Scatter(
             x=merged_df['ActivityDate'],
@@ -576,7 +505,6 @@ def plot_intensity_champion_chart(conn, user_id):
         )
     )
 
-    # Add bar chart for user's intensity
     fig.add_trace(
         go.Bar(
             x=user_daily_df['ActivityDate'],
@@ -586,7 +514,6 @@ def plot_intensity_champion_chart(conn, user_id):
         )
     )
  
-    # Update layout
     fig.update_layout(
         title=f"Daily Average Intensity Over Time",
         xaxis=dict(
@@ -637,21 +564,18 @@ def plot_calories_champion_chart(conn, user_id):
     """
     avg_df = pd.read_sql(avg_query, conn)
     
-    # Convert dates to datetime
     user_df['ActivityDate'] = pd.to_datetime(user_df['ActivityDate'])
     avg_df['ActivityDate'] = pd.to_datetime(avg_df['ActivityDate'])
     
-    # Sort both dataframes by date to ensure proper order
     user_df = user_df.sort_values('ActivityDate')
     avg_df = avg_df.sort_values('ActivityDate')
     
-    # Align the average dataframe with user dataframe dates
     merged_df = pd.merge(user_df[['ActivityDate']], avg_df, on='ActivityDate', how='left')
     
-    # Create plot
+    
     fig = go.Figure()
      
-    # Add line for average calories using the merged dataframe
+    
     fig.add_trace(
         go.Scatter(
             x=merged_df['ActivityDate'],
@@ -661,7 +585,7 @@ def plot_calories_champion_chart(conn, user_id):
         )
     )
 
-    # Add bar chart for user's calories
+    
     fig.add_trace(
         go.Bar(
             x=user_df['ActivityDate'],
@@ -671,7 +595,7 @@ def plot_calories_champion_chart(conn, user_id):
         )
     )
     
-    # Update layout
+    
     fig.update_layout(
         title=f"Daily Calories Over Time",
         xaxis=dict(
@@ -700,11 +624,10 @@ def plot_steps_trends(data):
     if data.empty:
         st.warning(" No step data available.")
         return
-    data = data.sort_values("ActivityDate")  # Ensure chronological order
-    data["RollingAvgSteps"] = data["TotalSteps"].rolling(window=7).mean()  # 7-day moving avg
+    data = data.sort_values("ActivityDate")  
+    data["RollingAvgSteps"] = data["TotalSteps"].rolling(window=7).mean()  
 
     fig = go.Figure()
-  # Plot actual daily steps
     fig.add_trace(go.Scatter(
         x=data["ActivityDate"], 
         y=data["TotalSteps"], 
@@ -731,9 +654,9 @@ def plot_steps_trends(data):
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions above plot
+            y=1.02, 
             xanchor="right",
-            x=1  # Right-aligned
+            x=1  
         )
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -747,7 +670,6 @@ def plot_calories_trends(data):
         color_discrete_sequence=["#E63946"], 
         nbins=25,
         opacity=0.8,
-        # name="Calories Burned" 
     )
     
     mean_calories = data["Calories"].mean()
@@ -762,9 +684,9 @@ def plot_calories_trends(data):
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions above plot
+            y=1.02, 
             xanchor="right",
-            x=1  # Right-aligned
+            x=1
         )
     )
 
@@ -775,12 +697,11 @@ def plot_sleep_trends(data):
         st.warning("No sleep data available.")
         return
 
-    data = data.sort_values("ActivityDate")  # Ensure chronological order
-    data["RollingAvgSleep"] = data["SleepMinutes"].rolling(window=7).mean()  # 7-day moving avg
+    data = data.sort_values("ActivityDate")  
+    data["RollingAvgSleep"] = data["SleepMinutes"].rolling(window=7).mean() 
 
     fig = go.Figure()
 
-    # Plot actual daily sleep
     fig.add_trace(go.Scatter(
         x=data["ActivityDate"], 
         y=data["SleepMinutes"], 
@@ -790,7 +711,6 @@ def plot_sleep_trends(data):
         marker=dict(size=5)
     ))
 
-    # Plot 7-day rolling average
     fig.add_trace(go.Scatter(
         x=data["ActivityDate"], 
         y=data["RollingAvgSleep"], 
@@ -808,23 +728,20 @@ def plot_sleep_trends(data):
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions above plot
+            y=1.02, 
             xanchor="right",
-            x=1  # Right-aligned
+            x=1  
         )
     )
     
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_activity_intensity(df):
-    # Aggregate total minutes spent in different intensity levels
     intensity_df = df[['VeryActiveMinutes', 'FairlyActiveMinutes', 'LightlyActiveMinutes', 'SedentaryMinutes']].sum().reset_index()
     intensity_df.columns = ['Activity Level', 'Minutes']
 
-    # Sort values for better visualization
     intensity_df = intensity_df.sort_values(by="Minutes", ascending=False)
 
-    # *DONUT CHART* with better insights
     fig1 = px.pie(
         intensity_df, 
         names='Activity Level', 
@@ -839,7 +756,6 @@ def plot_activity_intensity(df):
         }
     )
 
-    # *Enhance labels with percentages*
     fig1.update_traces(
         textinfo="percent+label",
         pull=[0.1 if m == intensity_df['Minutes'].max() else 0 for m in intensity_df['Minutes']]
@@ -848,9 +764,9 @@ def plot_activity_intensity(df):
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions above plot
+            y=1.02, 
             xanchor="right",
-            x=1  # Right-aligned
+            x=1 
         ))
 
     st.plotly_chart(fig1, use_container_width=True)
@@ -884,9 +800,9 @@ def plot_heart_rate_trends(df):
         legend=dict(
             orientation="h",
             yanchor="bottom",
-            y=1.02,  # Positions above plot
+            y=1.02,  
             xanchor="right",
-            x=1  # Right-aligned
+            x=1 
         )
     )
     st.plotly_chart(fig, use_container_width=True)
@@ -914,7 +830,7 @@ def plot_step_distribution_for_all_user(df):
         df, 
         x='TotalSteps', 
         nbins=25, 
-        color_discrete_sequence=["#2D6A4F"],  # Darker green
+        color_discrete_sequence=["#2D6A4F"],
         opacity=0.85
     )
     
@@ -968,70 +884,82 @@ def plot_sleep_vs_activity(df):
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_individual_metrics(user_df):
-    # 1. Calories Burned each day - using orange color
+    # 1. Calories Burned each day
     fig_calories = px.line(
         user_df, 
         x='ActivityDate', 
         y='Calories',
         markers=True,
         line_shape='linear',
-        color_discrete_sequence=['green']  # Set specific color
+        color_discrete_sequence=['green']
     )
     fig_calories.update_layout(
         title='Calories Over Time',
         xaxis_title="Date",
         yaxis_title="Calories (kcal)",
-        height=400
+        height=350
     )
     st.plotly_chart(fig_calories, use_container_width=True)
     
-    # 2. Steps each day - using blue color - CHANGED TO BAR CHART
-    fig_steps = px.bar(  # Changed from px.line to px.bar
+    # 2. Steps each day
+    avg_steps = user_df['TotalSteps'].mean()
+
+    fig_steps = px.bar(
         user_df, 
         x='ActivityDate', 
         y='TotalSteps',
-        color_discrete_sequence=['blue']  # Set specific color
+        color_discrete_sequence=['blue']
     )
+
+    fig_steps.add_hline(
+        y=avg_steps,
+        line_dash="dash",
+        line_color="red",
+        annotation_text=f"Avg: {avg_steps:.0f}",
+        annotation_position="top right"
+    )
+
     fig_steps.update_layout(
-        title='Steps Over Time',
         xaxis_title="Date",
         yaxis_title="Steps",
-        height=400
+        height=350
     )
+
     st.plotly_chart(fig_steps, use_container_width=True)
     
-    # 3. Distance each day - using green color
+    
+    # 3. Distance each day
     fig_distance = px.line(
         user_df, 
         x='ActivityDate', 
         y='TotalDistance',
         markers=True,
         line_shape='linear',
-        color_discrete_sequence=['orange']  # Set specific color
+        color_discrete_sequence=['orange']
     )
     fig_distance.update_layout(
         title='Distance Over Time',
         xaxis_title="Date",
         yaxis_title="Distance (km)",
-        height=400
+        height=350
     )
     st.plotly_chart(fig_distance, use_container_width=True)
     
-    # 4. Sleep duration each day - using purple color - CHANGED TO BAR CHART
-   
+    # 4. Sleep duration each day
     sleep_column = 'TotalMinutesAsleep' if 'TotalMinutesAsleep' in user_df.columns else 'SleepMinutes'
     if sleep_column in user_df.columns:
-        fig_sleep = px.bar(  # Changed from px.line to px.bar
+        fig_sleep = px.bar(
             user_df, 
             x='ActivityDate', 
             y=sleep_column,
-            color_discrete_sequence=['purple']  # Set specific color
+            color_discrete_sequence=['purple']
         )
         fig_sleep.update_layout(
             title='Sleep Over Time',
             xaxis_title="Date",
             yaxis_title="Sleep (mins)",
-            height=400
+            height=350,
+            yaxis=dict(rangemode="tozero")
         )
         st.plotly_chart(fig_sleep, use_container_width=True)
     else:
