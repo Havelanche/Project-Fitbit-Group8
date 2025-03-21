@@ -51,7 +51,7 @@ def plot_step_distance_relationship(champ_daily_df):
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["TotalSteps"],
         name="Steps",
-        marker_color="blue"
+        marker_color="purple"
     ))
     fig.update_layout(
         title=f"Steps vs. Distance",
@@ -100,7 +100,7 @@ def plot_calories_vs_activity(champ_daily_df):
         x=champ_daily_df["ActivityDate"],
         y=champ_daily_df["VeryActiveMinutes"],
         name="Very Active Minutes",
-        marker_color="green"
+        marker_color="yellow"
     ))
     fig.update_layout(
         title=f"Calories vs. Very Active Minutes",
@@ -353,7 +353,7 @@ def plot_steps_champion_chart(conn, user_id):
             x=user_df['ActivityDate'],
             y=user_df['TotalSteps'],
             name=f"Champion",
-            marker_color='green'
+            marker_color='blue'
         )
     )
 
@@ -591,7 +591,7 @@ def plot_calories_champion_chart(conn, user_id):
             x=user_df['ActivityDate'],
             y=user_df['Calories'],
             name=f"Champion",
-            marker_color='green'
+            marker_color="#E63946"
         )
     )
     

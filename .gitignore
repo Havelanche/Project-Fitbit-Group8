@@ -73,3 +73,5 @@ coverage.xml
 *.gif
 *.svg
 /output/
+
+*.pyc
