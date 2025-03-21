@@ -571,31 +571,26 @@ def leaderboard_page(metrics_df, champions):
 # Individual User Statistics
 def individual_users():
     st.header(":material/account_circle: Personal Stats")
-
-        # --------------------------
+    
+    # --------------------------
     # Sidebar Section
     with st.sidebar:
         setup_sidebar()
         st.title(":material/filter_alt: Choose Your User ID")
 
-        # Clean up user IDs by removing decimals
         user_ids = merged_df['Id'].unique().tolist()
         clean_user_ids = [int(user_id) for user_id in user_ids]
         selected_user_clean = st.sidebar.selectbox("Select User ID:", sorted(clean_user_ids))
         selected_user = float(selected_user_clean)
     
-    # 1. Dynamic date range based on selected user
-    # First filter by user to get their specific date range
     user_specific_df = merged_df[merged_df['Id'] == selected_user]
     if not user_specific_df.empty:
         user_min_date = pd.to_datetime(user_specific_df['ActivityDate']).min().date()
         user_max_date = pd.to_datetime(user_specific_df['ActivityDate']).max().date()
     else:
-        # Fallback to overall min/max if no data for selected user
         user_min_date = pd.to_datetime(merged_df['ActivityDate']).min().date()
         user_max_date = pd.to_datetime(merged_df['ActivityDate']).max().date()
     
-    # Date range selection with user-specific limits
     date_range = st.sidebar.date_input(
         "Select Date Range:",
         [user_min_date, user_max_date],
@@ -607,10 +602,8 @@ def individual_users():
     if st.sidebar.button("Select All Dates"):
         date_range = [user_min_date, user_max_date]
 
-    # Show date range info to user
     st.sidebar.info(f"This user has valid date range is from {user_min_date.strftime('%b %d, %Y')} to {user_max_date.strftime('%b %d, %Y')}")
     
-    # Filter by date range and selected user
     if len(date_range) == 2:
         user_df = merged_df[
             (merged_df['Id'] == selected_user) & 
@@ -620,24 +613,21 @@ def individual_users():
     else:
         user_df = merged_df[merged_df['Id'] == selected_user]
  
-    # Calculate aggregated metrics for the selected user
     total_steps = user_df['TotalSteps'].sum()
     total_calories = user_df['Calories'].sum()
     total_sleep = user_df['TotalMinutesAsleep'].sum() if 'TotalMinutesAsleep' in user_df.columns else user_df['SleepMinutes'].sum()
     total_distance = user_df['TotalDistance'].sum()
     total_intensive_minute = user_df['VeryActiveMinutes'].sum()
 
-    # Calculate average metrics
     average_steps = user_df['TotalSteps'].mean()
     average_calories = user_df['Calories'].mean()
     average_sleep = user_df['TotalMinutesAsleep'].mean() if 'TotalMinutesAsleep' in user_df.columns else user_df['SleepMinutes'].mean()
     average_distance = user_df['TotalDistance'].mean()
     average_intensive_minute = user_df['VeryActiveMinutes'].mean()
 
-    # Display total metrics in a row
     st.subheader(f":material/bar_chart: Highlights: User {selected_user_clean}")
 
-    total_cols = st.columns(5)  # Changed from 3 to 5 columns
+    total_cols = st.columns(5) 
 
     with total_cols[0]:
         st.metric(
@@ -670,8 +660,7 @@ def individual_users():
             help="Total minutes of sleep recorded during the selected period"
         )
 
-    # Display daily average metrics in a row
-    avg_cols = st.columns(5)  # Changed from 3 to 5 columns
+    avg_cols = st.columns(5)  
 
     with avg_cols[0]:
         st.metric(
@@ -704,15 +693,13 @@ def individual_users():
             help="Average daily sleep duration in minutes"
         )
      
-    # Create a combined chart with dual y-axes for steps and calories    
+    st.divider()
+  
     plot_individual_metrics(user_df) 
     
-    # Display the dataframe
     display_df = user_df.copy()
     display_df['ActivityDate'] = pd.to_datetime(display_df['ActivityDate']).dt.strftime('%B %d, %Y')
 
-    # Remove specified columns
-    # Remove specified columns
     columns_to_remove = ['BMI', 'WeightKg', 'Id', 'HeartRate', 'Class', 'StepTotal', 'AverageIntensity', 'FairlyActiveMinutes']
     display_columns = [col for col in display_df.columns if col not in columns_to_remove]
     display_df = display_df[display_columns]
@@ -730,16 +717,13 @@ def individual_users():
     'SleepMinutes': 'Sleep Duration'
     }
 
-    # Apply only to the columns that exist in your DataFrame
     valid_renames = {k: v for k, v in column_display_names.items() if k in display_df.columns}
     display_df = display_df.rename(columns=valid_renames)
 
-    # Reset index to start from 1 instead of 0 and name it "Days"
     display_df.index = range(1, len(display_df) + 1)
-    display_df.index.name = "Days"  # This names the index column
+    display_df.index.name = "Days"  
 
-    # Display the raw data table
-    st.subheader(f":material/search: Detailed Stats for User {selected_user_clean}")
+    st.subheader(f":material/search: Detailed Stats: User {selected_user_clean}")
     with st.expander(f"Click to Check"):
      st.dataframe(display_df)
     add_footer()

@@ -920,6 +920,7 @@ def plot_individual_metrics(user_df):
     )
 
     fig_steps.update_layout(
+        title='Steps Over Time',
         xaxis_title="Date",
         yaxis_title="Steps",
         height=350
