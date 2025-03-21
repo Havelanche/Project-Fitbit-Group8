@@ -4,3 +4,4 @@ statsmodels
 streamlit    
 stats  
 matplotlib  
+plotly
