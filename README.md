@@ -23,7 +23,7 @@ This project analyzes Fitbit data collected from 33 respondents in an Amazon sur
    - Provide individual user statistics, time-based filtering, and sleep analysis.
      
 ## Project Structure
-
+```bash
 src/
 │
 ├── fitbit-main.py               # Main script to run the data analysis pipeline
@@ -34,8 +34,7 @@ src/
 ├── csv_data_wrangling.py       # Cleans and transforms raw CSV Fitbit data
 ├── dashboard_visualization.py  # Dashboard-specific plots and figures
 ├── analysis.py                 # Core analysis functions (e.g., behavior trends)
-
-
+```
 
 ## Installation & Setup
 ### Prerequisites
@@ -78,8 +77,8 @@ To start the **Streamlit dashboard**, execute:
 ```bash
 streamlit run dashboard.py
 ```
-If it shows errors and not the lastest version of streamlit(go to the terminal and enter **streamlit --version** to check the version of streamlit)
-go get the **newest** version of streamlit in the terminal below
+If it shows errors and not the latest version of streamlit(go to the terminal and enter **streamlit --version** to check the version of streamlit).
+**Upgrade** Streamlit to the latest version in the terminal below.
 ```bash
 pip install --upgrade streamlit
 ```
@@ -89,7 +88,9 @@ After reviewing the dashboard, you need to close it in terminal **manually** by 
 - **General Statistics**: Overview of Fitbit users' activity levels & sleep time.
 - **Group Analysis**:Quickly find out whether you are a Heavy, Moderate, or Light user based on your activity days.
 - **Leaderboard system**:The Leaderboard page showcases top-performing users in the following categories:
-**Sleep Master**/**Distance Champion**/**Calorie Burner**.
+- **Sleep Master**
+- **Distance Champion**
+- **Calorie Burner**
 These highlights offer a fun, competitive way to recognize outstanding users based on real health and activity metrics.
 - **User-Specific Analysis**: Select an individual to view their fitness trends.
 - **Time-Based Filtering**: Filter data by date range or time of day.
