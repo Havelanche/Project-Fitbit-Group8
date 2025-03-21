@@ -1,10 +1,8 @@
 import traceback
 import numpy as np
-from scipy import stats
-from visualization import plot_sleep_vs_activity, plot_sleep_vs_sedentary, plot_residuals,plot_heart_rate_and_intensity_by_id
+from visualization import plot_sleep_vs_activity, plot_sleep_vs_sedentary, plot_residuals
 import statsmodels.formula.api as smf
 from scipy.stats import shapiro
-import statsmodels.api as sm
 import seaborn as sns
 import pandas as pd
 import matplotlib.cm as cm

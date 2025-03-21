@@ -1,7 +1,5 @@
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 
 def analyze_correlation(unique_user_distance, user_activity_days):
     merged_df = pd.merge(unique_user_distance, user_activity_days, on='User ID')

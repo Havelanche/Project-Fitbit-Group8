@@ -1,5 +1,4 @@
 import pandas as pd
-import numpy as np
 
 def load_and_preview_data(df):
     df = pd.read_csv(df)  

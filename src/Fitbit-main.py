@@ -1,6 +1,5 @@
 import os
 
-import pandas as pd
 from csv_data_wrangling import load_and_preview_data, clean_and_transform_data, summarize_data
 from visualization import plot_distance_distribution, plot_grouped_data, plot_statistical_summary, plot_weekend_vs_weekday, plot_workout, plot_LRM, calories_burned_per_day, plot_activity_by_time_blocks
 from analysis import activity_vs_sleep_insights, aggregate_data, analyze_weight_log, check_activity_days, classify_user, distance_days_correlation, linear_regression, get_unique_users, merge_and_analyze_data, unique_users_totaldistance, analyze_sleep_vs_activity, analyze_sleep_vs_sedentary, calculate_time_block_averages, get_activity_by_time_blocks, get_heart_rate_and_intensity

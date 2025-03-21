@@ -1,10 +1,6 @@
 import os
 import streamlit as st
-import sqlite3 as sql
 import pandas as pd
-import plotly.express as px
-import matplotlib.pyplot as plt
-import plotly.graph_objects as go
 from database import connect_db
 from dashboard_visualization import (plot_active_vs_sedentary, plot_activity_intensity, plot_calories_trends, plot_heart_rate_trends, plot_sleep_efficiency, plot_sleep_trends, plot_sleep_vs_activity, plot_step_distance_relationship, plot_calories_vs_activity, plot_sleep_distribution, plot_sleep_correlations, plot_step_distribution_for_all_user, plot_steps_trends, plot_steps_vs_calories, plot_steps_vs_sleep, show_calories_plot, show_sleep_plot, show_steps_plot, plot_individual_metrics, plot_steps_champion_chart, plot_distance_champion_chart, plot_calories_champion_chart)
 from analysis import merge_and_analyze_data, compute_leader_metrics

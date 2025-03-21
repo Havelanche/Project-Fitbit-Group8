@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import seaborn as sns
 import numpy as np
-import pandas as pd
 import traceback 
 
 def ensure_columns(df, required_columns):
