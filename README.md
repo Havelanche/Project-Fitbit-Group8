@@ -100,9 +100,12 @@ These highlights offer a fun, competitive way to recognize outstanding users, pr
 
 
 
-## Contributors
+## Contributors  
 
-- **[Havelanche Troenokromo]**
-- **[Honglin Zhu]**
-- **[Qianying Zhao (Lala)]**
-- **[Chenshuo Zhang]**
+- **Havelanche Troenokromo**  
+- **Honglin Zhu**  
+- **Qianying Zhao (Lala)**  
+- **Chenshuo Zhang**   
+
+*Supervised by dr. ir. M. A. (Marc) Corstanje*  
+*Developed as part of the Data Engineering Group Assignment from BSc Business Analytics program at Vrije Universiteit Amsterdam.*  
