@@ -24,11 +24,15 @@ This project analyzes Fitbit data collected from 33 respondents in an Amazon sur
      
 ## Project Structure
 ```bash
+data/
+├── Chicago_Weather.csv         # online real weather dataset from Chicago
+├── daily_activity.csv          # raw dataset
+├── fitbit_database.db          # fitbit database
 src/
 │
-├── fitbit-main.py               # Main script to run the data analysis pipeline
-├── dashboard.py                 # Streamlit-based interactive dashboard
-├── database.py                  # SQLite-based data interaction layer
+├── fitbit-main.py              # Main script to run the data analysis pipeline
+├── dashboard.py                # Streamlit-based interactive dashboard
+├── database.py                 # SQLite-based data interaction layer
 ├── visualization.py            # Generic data visualizations
 ├── creative_analysis.py        # Unique and creative correlations or patterns
 ├── csv_data_wrangling.py       # Cleans and transforms raw CSV Fitbit data
