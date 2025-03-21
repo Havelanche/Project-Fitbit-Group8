@@ -7,9 +7,5 @@ sqlite3
 streamlit  
 traceback  
 stats  
-matplotlib.cm  
-matplotlib.pyplot  
-statsmodels.api  
+matplotlib
 shapiro  
-plotly.express  
-statsmodels.formula.api
