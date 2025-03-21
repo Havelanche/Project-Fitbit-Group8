@@ -24,27 +24,30 @@ This project analyzes Fitbit data collected from 33 respondents in an Amazon sur
      
 ## Project Structure
 ```bash
-data/
-├── Chicago_Weather.csv         # online real weather dataset from Chicago
-├── daily_activity.csv          # raw dataset
-├── fitbit_database.db          # fitbit database
-src/
-│
-├── Fitbit-main.py              # Main script to run the data analysis pipeline
-├── dashboard.py                # Streamlit-based interactive dashboard
-├── database.py                 # SQLite-based data interaction layer
-├── visualization.py            # Generic data visualizations
-├── creative_analysis.py        # Unique and creative correlations or patterns
-├── csv_data_wrangling.py       # Cleans and transforms raw CSV Fitbit data
-├── dashboard_visualization.py  # Dashboard-specific plots and figures
-├── analysis.py                 # Core analysis functions (e.g., behavior trends)
+Project-Fitbit-Group8
+├── data/
+|  ├── Chicago_Weather.csv         # online real weather dataset from Chicago
+|  ├── daily_activity.csv          # raw dataset
+|  ├── fitbit_database.db          # fitbit database
+├── src/
+|  ├── Fitbit-main.py              # Main script to run the data analysis pipeline
+|  ├── dashboard.py                # Streamlit-based interactive dashboard
+|  ├── database.py                 # SQLite-based data interaction layer
+|  ├── visualization.py            # Generic data visualizations
+|  ├── creative_analysis.py        # Unique and creative correlations or patterns
+|  ├── csv_data_wrangling.py       # Cleans and transforms raw CSV Fitbit data
+|  ├── dashboard_visualization.py  # Dashboard-specific plots and figures
+|  ├── analysis.py                 # Core analysis functions (e.g., behavior trends)
+|  ├── requirements.txt            # Python dependencies (pip install -r requirements.txt) 
+├── README.md                      # Project documentation
+├── .gitignore                     # Ignore unnecessary files (db files, pycache, etc.)
 ```
 
 ## Installation & Setup
 ### Prerequisites
 Ensure you have **Python 3.8 & streamlit-1.43.2** installed & imported along with the following dependencies:
 ```bash
-os pandas numpy seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
+os pandas numpy seaborn statsmodels sqlite3 streamlit traceback stats matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api matplotlib
 ```
 ## Getting Started
 **Clone the Repository**
