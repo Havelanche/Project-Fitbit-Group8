@@ -1,4 +1,4 @@
-# Fitbit Data Analysis Project
+# Fitbit Data Analytics & Dashboard Project
 
 ## Project Overview
 This project analyzes Fitbit data collected from 33 respondents in an Amazon survey (2016). The study involves statistical analysis, data visualization, and the development of a Streamlit dashboard to explore insights from the dataset.
@@ -59,15 +59,15 @@ You can simply clone and download it to desktop.
 ```bash
 cd path/to/your/project
 ```
-Make sure you are at the right folder to run the code by typing **ls** in terminal to check
+Make sure you are at the right folder to run the code by entering **ls** in terminal to check
 ```bash
 ls
 ```
-**Until terminal shows the**
+**Until your terminal shows the**
 ```bash 
 Readme.md     data    src
 ```
-**Then goes to**
+**Then navigate to**
 ```bash
 cd src
 ```
