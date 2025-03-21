@@ -82,14 +82,20 @@ To start the **Streamlit dashboard**, execute:
 ```bash
 streamlit run dashboard.py
 ```
-If it shows errors, go to the terminal and enter **streamlit --version** to check the version of streamlit.
-If it's **not streamlit-1.43.2**, go get the newest version of streamlit in the terminal below
+If it shows errors and not the lastest version of streamlit(go to the terminal and enter **streamlit --version** to check the version of streamlit)
+go get the **newest** version of streamlit in the terminal below
 ```bash
 pip install --upgrade streamlit
 ```
 After reviewing the dashboard, you need to close it in terminal **manually** by pressing **Control + Z** otherwise it will keep operating!
+
 ## Features of the Dashboard
-- **General Statistics**: Overview of Fitbit users' activity levels.
+- **General Statistics**: Overview of Fitbit users' activity levels & sleep time.
+- **Group Analysis**:take a closer look of three different type of users(heavy, moderate and light).
+- **leadboard system**:The Leaderboard page showcases top-performing users in the following categories:
+**💤 Sleep Master**/**🏃 Distance Champion**/**🔥 Calorie Burner**
+These highlights offer a fun, competitive way to recognize outstanding users based on real health and activity metrics.
+
 - **User-Specific Analysis**: Select an individual to view their fitness trends.
 - **Time-Based Filtering**: Filter data by date range or time of day.
 - **Sleep & Activity Correlation**: Explore how sleep patterns relate to daily activity.
