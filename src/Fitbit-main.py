@@ -61,26 +61,19 @@ def main():
         get_heart_rate_and_intensity(connection, user_id='1503960366')
         discover_weather_impact(connection, CHICAGO_WEATHER)
         
-        # 2. Aggregate data
-        # print("Merging and analyzing data...")
+        # Aggregate data
         merged_df, user_summaries = merge_and_analyze_data(connection)
         
-        # print("Aggregating data...")
         df_aggregated = aggregate_data(merged_df)
 
-        # 3. Activity vs Sleep insights (Weekends vs Weekdays)
-        # print("Analyzing activity vs sleep...")
         activity_vs_sleep_insights(df_aggregated)
 
-        # 4. Weight log analysis
         print("Analyzing weight log...")
         analyze_weight_log(connection)
 
-        # 5. Visualizations
-        # print("Generating visualizations...")
+        # Visualizations
         plot_grouped_data(df_aggregated)
         plot_statistical_summary(user_summaries)
-        # print("weekend_vs_weekday...")
         plot_weekend_vs_weekday(df_aggregated)
 
         connection.close()
