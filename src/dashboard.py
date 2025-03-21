@@ -152,7 +152,7 @@ def setup_sidebar():
 # --------------------------
 # Sidebar activity overview page
 # --------------------------
-def setup_sidebar_Users_Summary(merged_df):
+def setup_sidebar_Users_Summary():
     with st.sidebar:
         setup_sidebar() 
         st.title(":material/filter_alt: Choose Your Group")
@@ -180,10 +180,10 @@ def add_footer():
 def show_Users_Summary(merged_df):
     st.header(":material/groups: Community Summary") 
 
-    selected_intensity = setup_sidebar_Users_Summary(merged_df)
+    selected_intensity = setup_sidebar_Users_Summary()
 
     filtered_df = merged_df.copy()
-    # Count users based on the 'Class' column in merged_df
+    
     heavy_count = merged_df[merged_df["Class"] == "Heavy"]["Id"].nunique()
     moderate_count = merged_df[merged_df["Class"] == "Moderate"]["Id"].nunique()
     light_count = merged_df[merged_df["Class"] == "Light"]["Id"].nunique()
