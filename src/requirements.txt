@@ -9,3 +9,8 @@ traceback
 stats  
 matplotlib
 shapiro  
+matplotlib.cm  
+matplotlib.pyplot  
+statsmodels.api  
+plotly.express  
+statsmodels.formula.api
