@@ -91,7 +91,7 @@ After reviewing the dashboard, you need to close it in terminal **manually** by 
 - **Sleep Master**
 - **Distance Champion**
 - **Calorie Burner**
-- These highlights offer a fun, competitive way to recognize outstanding users based on real health and activity metrics.
+These highlights offer a fun, competitive way to recognize outstanding users based on real health and activity metrics.
 - **User-Specific Analysis**: Select an individual to view their fitness trends.
 - **Time-Based Filtering**: Filter data by date range or time of day.
 - **Sleep & Activity Correlation**: Explore how sleep patterns relate to daily activity.
