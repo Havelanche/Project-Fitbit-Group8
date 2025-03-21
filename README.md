@@ -1,7 +1,7 @@
 # Fitbit Data Analytics & Dashboard Project
 
 ## Project Overview
-This project analyzes Fitbit data collected from 33 respondents in an Amazon survey (2016). The study involves statistical analysis, data visualization, and the development of a Streamlit dashboard to explore insights from the dataset.
+This project analyzes Fitbit data collected from 33 respondents in an Amazon survey (2016). The study involves data wrangling, statistical analysis, data visualization, and the development of a Streamlit dashboard to explore insights from the dataset.
 
 ## Project Objectives
 1. **Data Cleaning & Exploration**:
@@ -30,7 +30,7 @@ data/
 ├── fitbit_database.db          # fitbit database
 src/
 │
-├── fitbit-main.py              # Main script to run the data analysis 
+├── Fitbit-main.py              # Main script to run the data analysis pipeline
 ├── dashboard.py                # Streamlit-based interactive dashboard
 ├── database.py                 # SQLite-based data interaction layer
 ├── visualization.py            # Generic data visualizations
@@ -44,21 +44,21 @@ src/
 ### Prerequisites
 Ensure you have **Python 3.8 & streamlit-1.43.2** installed & imported along with the following dependencies:
 ```bash
-os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
+os pandas numpy seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
 ```
 ## Getting Started
 **Clone the Repository**
 ```bash
 https://github.com/Havelanche/Project-Fitbit-Group8
 ```
-You can simply clone and download it to desktop.
+You can clone and download it to your desktop.
 
 ### Opening Files in Visual Studio Code
 **Open your terminal and navigate to the project directory**.
 ```bash
 cd path/to/your/project
 ```
-Make sure you are at the right folder to run the code by entering **ls** in terminal to check
+Make sure you are in the correct folder to run the code by entering **ls** in the terminal to check
 ```bash
 ls
 ```
@@ -70,41 +70,39 @@ Then navigate to
 ```bash
 cd src
 ```
-Now you are at the right folder!
-### Running the Analysis in fitbit-main.py
+Now you are in the correct folder!
+### Running the Analysis in Fitbit-main.py
 To execute the analysis and generate visualizations, run:
 ```bash
-python fitbit-main.py
+python Fitbit-main.py
 ```
 ### Running the Dashboard in dashboard.py
 To start the **Streamlit dashboard**, execute:
 ```bash
 streamlit run dashboard.py
 ```
-If it shows errors and not the latest version of streamlit(go to the terminal and enter **streamlit --version** to check the version of streamlit).
+If it shows errors and not the latest version of streamlit (go to the terminal and enter **streamlit --version** to check the version of streamlit).
 **Upgrade** Streamlit to the latest version in the terminal below.
 ```bash
 pip install --upgrade streamlit
 ```
-After reviewing the dashboard, you need to close it in terminal **manually** by pressing **Control + Z** otherwise it will keep operating!
+After reviewing the dashboard, you need to close it in the terminal **manually** by pressing **Control + Z** otherwise it will keep operating!
 
 ## Features of the Dashboard
 - **General Statistics**: Overview of Fitbit users' activity levels & sleep time.
-- **Group Analysis**:Quickly find out whether you are a Heavy, Moderate, or Light user based on your activity days.
-- **Leaderboard system**:The Leaderboard page showcases top-performing users in the following categories:
- **Sleep Master**/**Distance Champion**/**Calorie Burner**.
-These highlights offer a fun, competitive way to recognize outstanding users based on real health and activity metrics.
-- **User-Specific Analysis**: Select an individual to view their fitness trends.
-- **Time-Based Filtering**: Filter data by date range or time of day.
-- **Sleep & Activity Correlation**: Explore how sleep patterns relate to daily activity.
-- **Visual Insights**: Interactive graphs to analyze step count, heart rate, and calorie burn.etc.
+- **Community Summary**: Choose your group of interest from Heavy, Moderate, or Light users based on the daily activity length, and explore various fitness insights.
+- **Leaderboard**: The Leaderboard page showcases top-performing users in the following categories:
+**Sleep Master**, **Distance Champion**, **Calorie Burner**.
+These highlights offer a fun, competitive way to recognize outstanding users, present correlations between activity, health and sleep metrics, and help users improve their overall well-being.
+- **User-Specific Analysis**: Select an individual user with a date range to view their fitness data and activity trends, ie: distance, step count, heart rate, and calories.
+
 
 
 
 
 ## Contributors
 
-- **[Havelanche]**
-- **[Honglin]**
-- **[Lala]**
-- **[Chenshuo]**
+- **[Havelanche Troenokromo]**
+- **[Honglin Zhu]**
+- **[Qianying Zhao (Lala)]**
+- **[Chenshuo Zhang]**
