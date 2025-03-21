@@ -754,7 +754,6 @@ def individual_users():
     st.subheader(f":material/search: Detailed Stats for User {selected_user_clean}")
     st.dataframe(display_df)
     add_footer()
-    add_footer()
 
 # --------------------------
 # Navigation logic
