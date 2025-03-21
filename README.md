@@ -88,9 +88,7 @@ After reviewing the dashboard, you need to close it in terminal **manually** by 
 - **General Statistics**: Overview of Fitbit users' activity levels & sleep time.
 - **Group Analysis**:Quickly find out whether you are a Heavy, Moderate, or Light user based on your activity days.
 - **Leaderboard system**:The Leaderboard page showcases top-performing users in the following categories:
-- **Sleep Master**
-- **Distance Champion**
-- **Calorie Burner**
+ **Sleep Master**/**Distance Champion**/**Calorie Burner**.
 These highlights offer a fun, competitive way to recognize outstanding users based on real health and activity metrics.
 - **User-Specific Analysis**: Select an individual to view their fitness trends.
 - **Time-Based Filtering**: Filter data by date range or time of day.
