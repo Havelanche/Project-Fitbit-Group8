@@ -43,7 +43,7 @@ This project analyzes Fitbit data collected from 33 respondents in an Amazon sur
 
 ## Installation & Setup
 ### Prerequisites
-Ensure you have **Python 3.8+** installed & imported along with the following dependencies:
+Ensure you have **Python 3.8 & streamlit-1.43.2** installed & imported along with the following dependencies:
 ```bash
 os pandas numpy matplotlib seaborn statsmodels sqlite3 streamlit traceback stats  matplotlib.cm matplotlib.pyplot statsmodels.api shapiro plotly.express statsmodels.formula.api 
 ```
@@ -81,6 +81,11 @@ python fitbit-main.py
 To start the **Streamlit dashboard**, execute:
 ```bash
 streamlit run dashboard.py
+```
+If it shows errors, go to the terminal and enter**streamlit --version** to check the version of streamlit.
+If its not streamlit-1.43.2, go get the newest version of streamlit in the terminal below
+```bash
+pip install --upgrade streamlit
 ```
 After reviewing the dashboard, you need to close it in terminal **manually** by pressing **Control + Z** otherwise it will keep operating!
 ## Features of the Dashboard
