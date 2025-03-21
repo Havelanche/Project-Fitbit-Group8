@@ -10,16 +10,13 @@ FOLDER_DATA = os.path.dirname(os.path.dirname(__file__))
 DATA_FILE = os.path.join(FOLDER_DATA, "data", "daily_activity.csv")
 DB_NAME = os.path.join(FOLDER_DATA, "data", "fitbit_database.db")
 CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
-# CHICAGO_WEATHER = os.path.join(FOLDER_DATA, "data", "Chicago_Weather.csv")
 
 def main():
     
-    # Load and clean data
     original_data = load_and_preview_data(DATA_FILE) 
     cleaned_data = clean_and_transform_data(original_data)
     summarize_data(cleaned_data)
 
-    # follow-up parameter insert for function update
     unique_users = get_unique_users(cleaned_data)
     unique_user_distance = unique_users_totaldistance(cleaned_data)
     
@@ -30,7 +27,6 @@ def main():
     # Creative Analysis
     user_activity_days, top_5_users = check_activity_days(cleaned_data)
     merge_df_distance_days = distance_days_correlation(unique_user_distance, user_activity_days)
-
 
     # Linear regression model
     model = linear_regression(cleaned_data)
@@ -65,9 +61,8 @@ def main():
 
         get_heart_rate_and_intensity(connection, user_id='1503960366')
         discover_weather_impact(connection, CHICAGO_WEATHER)
-        # discover_weather_impact(connection, CHICAGO_WEATHER) it is twice
         
-            # 2. Aggregate data
+        # 2. Aggregate data
         # print("Merging and analyzing data...")
         merged_df, user_summaries = merge_and_analyze_data(connection)
         
@@ -89,9 +84,7 @@ def main():
         # print("weekend_vs_weekday...")
         plot_weekend_vs_weekday(df_aggregated)
 
-
         connection.close()
-        # throw exceotion to locate the error 
 
 if __name__ == '__main__':
     main()
