@@ -83,7 +83,7 @@ To start the **Streamlit dashboard**, execute:
 streamlit run dashboard.py
 ```
 If it shows errors, go to the terminal and enter **streamlit --version** to check the version of streamlit.
-If it's not streamlit-1.43.2, go get the newest version of streamlit in the terminal below
+If it's **not streamlit-1.43.2**, go get the newest version of streamlit in the terminal below
 ```bash
 pip install --upgrade streamlit
 ```
