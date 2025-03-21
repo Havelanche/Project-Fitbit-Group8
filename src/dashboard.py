@@ -126,6 +126,7 @@ def show_home(merged_df):
     st.markdown("---")
     st.markdown("<p style='text-align: center; font-size: 16px;'>  "
     "Developed by Honglin Zhu, Havelanche Troenokromo, Qianying Zhao (Lala) and Chenshuo Zhang </p>", unsafe_allow_html=True)
+    add_footer()
 
 # --------------------------
 # Sidebar Navigation
@@ -273,9 +274,7 @@ def show_Users_Summary(merged_df):
         
         st.markdown(f'''
         **Calorie Burn Insights for {selected_intensity}:**  
-        1. Users burn an average of **`{avg_calories:,.0f}` kcal per day**.  
-        2. **More active users** show a **stronger correlation** between intensity and calorie burn.  
-        3. **Sustainable moderate activity** often beats short bursts of extreme intensity.  
+          Users burn an average of **`{avg_calories:,.0f}` kcal per day**.  
         ''')
 
     with tab3:
@@ -284,9 +283,7 @@ def show_Users_Summary(merged_df):
         
         st.markdown(f'''
         **Sleep Insights for {selected_intensity}:**  
-        1. Users sleep an average of **`{avg_sleep:.1f}` hours per night**.  
-        2. **Longer sleep durations** correlate with more stable activity patterns.  
-        3. **Irregular sleep (sleep debt)** often leads to increased sedentary behavior.  
+          Users sleep an average of **`{avg_sleep:.1f}` hours per night**.  
         ''')
 
     avg_active_minutes = filtered_df["VeryActiveMinutes"].mean()
@@ -304,7 +301,6 @@ def show_Users_Summary(merged_df):
         **Activity Intensity Insights for {selected_intensity}:**  
         1. Users in this category average **`{avg_active_minutes:.0f}` minutes** of vigorous activity daily.  
         2. The average sedentary time for this group is **`{avg_sedentary_minutes:.0f}` minutes per day**.  
-        3. **Balance between activity & rest is key**—sedentary users may benefit from **short movement breaks** every hour.  
         ''')
 
     with tab5:
@@ -314,9 +310,7 @@ def show_Users_Summary(merged_df):
         if avg_heart_rate is not None:
             st.markdown(f'''
             **Heart Rate Insights for {selected_intensity}:**  
-            1. The **average heart rate** for this group is **`{avg_heart_rate:.0f}` BPM**.  
-            2. **Users with consistent activity** tend to show **lower resting heart rates** over time.  
-            3. **Heart rate spikes** align with high-intensity movement, but **proper cooldowns** are important.  
+              The **average heart rate** for this group is **`{avg_heart_rate:.0f}` BPM**.  
             ''')
         else:
             st.warning(" No heart rate data available for this category.")
@@ -327,9 +321,7 @@ def show_Users_Summary(merged_df):
         
         st.markdown(f'''
         **Step Distribution Insights for {selected_intensity}:**  
-        1. The step count variation for this group is **`{step_variability:,.0f}` steps** (higher = inconsistent movement).  
-        2. **Some users consistently reach** their step goals, while others show high variability.  
-        3. **Stable step patterns** often lead to more sustainable daily activity.  
+          The step count variation for this group is **`{step_variability:,.0f}` steps** (higher = inconsistent movement).   
         ''')
         
     with st.expander("Relationships Between Metrics"):
