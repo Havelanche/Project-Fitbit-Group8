@@ -744,7 +744,8 @@ def individual_users():
 
     # Display the raw data table
     st.subheader(f":material/search: Detailed Stats for User {selected_user_clean}")
-    st.dataframe(display_df)
+    with st.expander(f"Click to Check"):
+     st.dataframe(display_df)
     add_footer()
 
 # --------------------------
