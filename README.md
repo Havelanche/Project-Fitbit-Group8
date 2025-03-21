@@ -58,11 +58,11 @@ Make sure you are at the right folder to run the code by entering **ls** in term
 ```bash
 ls
 ```
-**Until your terminal shows the**
+Until your terminal shows the
 ```bash 
 Readme.md     data    src
 ```
-**Then navigate to**
+Then navigate to
 ```bash
 cd src
 ```
