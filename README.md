@@ -30,7 +30,7 @@ data/
 ├── fitbit_database.db          # fitbit database
 src/
 │
-├── fitbit-main.py              # Main script to run the data analysis pipeline
+├── fitbit-main.py              # Main script to run the data analysis 
 ├── dashboard.py                # Streamlit-based interactive dashboard
 ├── database.py                 # SQLite-based data interaction layer
 ├── visualization.py            # Generic data visualizations
